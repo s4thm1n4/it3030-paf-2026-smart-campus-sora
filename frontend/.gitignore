@@ -12,11 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Environment secrets — never commit
-.env
-.env.local
-.env.production
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -27,5 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-

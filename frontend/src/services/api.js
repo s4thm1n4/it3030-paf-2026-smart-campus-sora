@@ -16,13 +16,9 @@ const api = axios.create({
 // ── Request interceptor: attach token ──
 api.interceptors.request.use(
   (config) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (e) {
-      // localStorage not available — skip
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

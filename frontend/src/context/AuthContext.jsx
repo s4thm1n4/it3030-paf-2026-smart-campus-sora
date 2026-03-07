@@ -9,20 +9,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Restore user from localStorage on mount
-    // Wrapped in try/catch to handle any corrupted stored data
-    try {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-      }
-    } catch (e) {
-      // Bad data in localStorage — clear it and start fresh
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-    } finally {
-      setLoading(false);
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
+    setLoading(false);
   }, []);
 
   const login = async (googleCredential) => {
