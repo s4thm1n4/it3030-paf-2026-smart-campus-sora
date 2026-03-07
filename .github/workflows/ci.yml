@@ -2,7 +2,7 @@
 #  CI Pipeline — Smart Campus Operations Hub
 #  Group SORA | IT3030 PAF 2026
 # ══════════════════════════════════════════════
-name: CI — Build & Test
+name: CI - Build and Test
 
 on:
   push:
@@ -29,10 +29,10 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Checkout code
@@ -45,13 +45,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
       - name: Build with Maven
-        run: mvn clean compile -DskipTests
-        env:
-          SPRING_PROFILES_ACTIVE: test
+        run: ./mvnw clean compile -DskipTests
 
       - name: Run tests
-        run: mvn test
+        run: ./mvnw test
         env:
           SPRING_PROFILES_ACTIVE: test
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/smart_campus_test_db
@@ -79,9 +80,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Lint
-        run: npx eslint src/ --max-warnings 0 || true
 
       - name: Build
         run: npm run build
