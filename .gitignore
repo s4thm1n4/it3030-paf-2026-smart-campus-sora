@@ -44,3 +44,5 @@ desktop.ini
 # ── Uploads (dev only — don't commit user files) ──
 backend/uploads/*
 !backend/uploads/.gitkeep
+# ── AI Assistant session files ──
+.claude/
