@@ -1,0 +1,46 @@
+# ══════════════════════════════════════════════
+#  Smart Campus Operations Hub — .gitignore
+#  Group SORA | IT3030 PAF 2026
+# ══════════════════════════════════════════════
+
+# ── Java / Spring Boot ──
+backend/target/
+backend/*.jar
+backend/*.war
+backend/*.class
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# ── IDE files ──
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# ── Node / React ──
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# ── Logs ──
+*.log
+logs/
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Environment / Secrets ──
+.env
+.env.local
+.env.production
+*.env
+
+# ── Uploads (dev only — don't commit user files) ──
+backend/uploads/*
+!backend/uploads/.gitkeep

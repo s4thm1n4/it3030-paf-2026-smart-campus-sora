@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: smart-campus-api
+
+  # ── PostgreSQL ──
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_campus_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # auto-creates tables during dev
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # ── OAuth 2.0 (Google) ──
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:your-client-id}
+            client-secret: ${GOOGLE_CLIENT_SECRET:your-client-secret}
+            scope:
+              - openid
+              - profile
+              - email
+
+  # ── File Upload Limits ──
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 15MB
+
+server:
+  port: 8080
+
+# ── App-specific config ──
+app:
+  cors:
+    allowed-origins: http://localhost:5173    # Vite dev server
+  jwt:
+    secret: ${JWT_SECRET:your-super-secret-jwt-key-change-in-production}
+    expiration-ms: 86400000                   # 24 hours
