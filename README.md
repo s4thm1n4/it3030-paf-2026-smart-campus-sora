@@ -13,7 +13,7 @@ A full-stack web application for managing campus facilities, bookings, maintenan
 | Layer | Technology |
 |-------|-----------|
 | Backend | Java 17, Spring Boot 3.5.11, Spring Data JPA, Spring Security |
-| Database | MySQL 8.0 |
+| Database | PostgreSQL 16 |
 | Authentication | OAuth 2.0 (Google), JWT |
 | Frontend | React 19 (Vite), Tailwind CSS, React Router |
 | CI/CD | GitHub Actions |
@@ -57,14 +57,14 @@ it3030-paf-2026-smart-campus-sora/
 
 - Java 17+
 - Node.js 22+
-- MySQL 8.0+
+- PostgreSQL 16+
 - Maven 3.9+ (or use the included `mvnw` wrapper)
 
 ### 1. Database Setup
 
 ```sql
 CREATE DATABASE smart_campus_db;
--- Default credentials: root / root (update in application.properties)
+-- Default credentials: postgres / postgres (update in application.properties)
 ```
 
 ### 2. Backend
