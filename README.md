@@ -12,8 +12,8 @@ A full-stack web application for managing campus facilities, bookings, maintenan
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | Java 17, Spring Boot 3.4.3, Spring Data JPA, Spring Security |
-| Database | PostgreSQL 16 |
+| Backend | Java 17, Spring Boot 3.5.11, Spring Data JPA, Spring Security |
+| Database | MySQL 8.0 |
 | Authentication | OAuth 2.0 (Google), JWT |
 | Frontend | React 19 (Vite), Tailwind CSS, React Router |
 | CI/CD | GitHub Actions |
@@ -26,7 +26,7 @@ A full-stack web application for managing campus facilities, bookings, maintenan
 ```
 it3030-paf-2026-smart-campus-sora/
 ├── backend/                    # Spring Boot REST API
-│   ├── src/main/java/com/sora/smartcampus/
+│   ├── src/main/java/com/smartcampus/smart_campus_api/
 │   │   ├── config/             # CORS, Security configuration
 │   │   ├── controller/         # REST controllers
 │   │   ├── dto/                # Data Transfer Objects
@@ -57,20 +57,21 @@ it3030-paf-2026-smart-campus-sora/
 
 - Java 17+
 - Node.js 22+
-- PostgreSQL 16+
-- Maven 3.9+ (or use the included wrapper)
+- MySQL 8.0+
+- Maven 3.9+ (or use the included `mvnw` wrapper)
 
 ### 1. Database Setup
 
 ```sql
 CREATE DATABASE smart_campus_db;
+-- Default credentials: root / root (update in application.properties)
 ```
 
 ### 2. Backend
 
 ```bash
 cd backend
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 The API starts at `http://localhost:8080`
