@@ -1,6 +1,9 @@
 # ══════════════════════════════════════════════
 #  Smart Campus Operations Hub — Application Config
 #  Group SORA | IT3030 PAF 2026
+#
+#  SETUP: Copy this file to application.properties and fill in your values
+#  > cp application.properties.example application.properties
 # ══════════════════════════════════════════════
 
 spring.application.name=smart-campus-api
@@ -17,9 +20,9 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
-# ── OAuth 2.0 (Google) ──
-spring.security.oauth2.client.registration.google.client-id=${GOOGLE_CLIENT_ID:your-client-id}
-spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_CLIENT_SECRET:your-client-secret}
+# ── OAuth 2.0 (Google) — get from console.cloud.google.com ──
+spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
+spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 spring.security.oauth2.client.registration.google.scope=openid,profile,email
 
 # ── File Upload Limits ──
@@ -31,5 +34,6 @@ server.port=8080
 
 # ── App Custom Config ──
 app.cors.allowed-origins=http://localhost:5173
-app.jwt.secret=${JWT_SECRET:your-super-secret-jwt-key-change-in-production}
+app.jwt.secret=CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_STRING
 app.jwt.expiration-ms=86400000
+
