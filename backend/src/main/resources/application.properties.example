@@ -21,6 +21,8 @@ spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 
 # ── OAuth 2.0 (Google) — get from console.cloud.google.com ──
+# Ask your team lead for the shared Client ID and Secret
+# OR create your own at console.cloud.google.com → APIs & Services → Credentials
 spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
 spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 spring.security.oauth2.client.registration.google.scope=openid,profile,email
