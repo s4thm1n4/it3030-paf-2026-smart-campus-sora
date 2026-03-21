@@ -1,6 +1,6 @@
 package com.smartcampus.smart_campus_api.controller;
 
-import com.smartcampus.smart_campus_api.model.Facility;
+import com.smartcampus.smart_campus_api.dto.FacilityDTO;
 import com.smartcampus.smart_campus_api.model.FacilityType;
 import com.smartcampus.smart_campus_api.service.FacilityService;
 import jakarta.validation.Valid;
@@ -29,13 +29,13 @@ public class FacilityController {
     }
 
     @PostMapping
-    public ResponseEntity<Facility> createFacility(@Valid @RequestBody Facility facility) {
-        Facility createdFacility = facilityService.createFacility(facility);
+    public ResponseEntity<FacilityDTO> createFacility(@Valid @RequestBody FacilityDTO facilityDTO) {
+        FacilityDTO createdFacility = facilityService.createFacility(facilityDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdFacility);
     }
 
     @GetMapping
-    public ResponseEntity<List<Facility>> getFacilities(
+    public ResponseEntity<List<FacilityDTO>> getFacilities(
             @RequestParam(required = false) FacilityType type,
             @RequestParam(required = false) Integer capacity,
             @RequestParam(required = false) String location) {
@@ -43,13 +43,13 @@ public class FacilityController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Facility> getFacilityById(@PathVariable Long id) {
+    public ResponseEntity<FacilityDTO> getFacilityById(@PathVariable Long id) {
         return ResponseEntity.ok(facilityService.getFacilityById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Facility> updateFacility(@PathVariable Long id, @Valid @RequestBody Facility facility) {
-        return ResponseEntity.ok(facilityService.updateFacility(id, facility));
+    public ResponseEntity<FacilityDTO> updateFacility(@PathVariable Long id, @Valid @RequestBody FacilityDTO facilityDTO) {
+        return ResponseEntity.ok(facilityService.updateFacility(id, facilityDTO));
     }
 
     @DeleteMapping("/{id}")

@@ -1,6 +1,8 @@
 package com.smartcampus.smart_campus_api.service;
 
+import com.smartcampus.smart_campus_api.dto.FacilityDTO;
 import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
+import com.smartcampus.smart_campus_api.mapper.FacilityMapper;
 import com.smartcampus.smart_campus_api.model.Facility;
 import com.smartcampus.smart_campus_api.model.FacilityType;
 import com.smartcampus.smart_campus_api.repository.FacilityRepository;
@@ -14,55 +16,77 @@ import java.util.stream.Stream;
 public class FacilityService {
 
     private final FacilityRepository facilityRepository;
+    private final FacilityMapper facilityMapper;
 
-    public FacilityService(FacilityRepository facilityRepository) {
+    public FacilityService(FacilityRepository facilityRepository, FacilityMapper facilityMapper) {
         this.facilityRepository = facilityRepository;
+        this.facilityMapper = facilityMapper;
     }
 
     @Transactional
-    public Facility createFacility(Facility facility) {
-        return facilityRepository.save(facility);
+    public FacilityDTO createFacility(FacilityDTO facilityDTO) {
+        Facility facility = facilityMapper.toEntity(facilityDTO);
+        Facility savedFacility = facilityRepository.save(facility);
+        return facilityMapper.toDto(savedFacility);
     }
 
-    public List<Facility> getAllFacilities() {
-        return facilityRepository.findAll();
+    public List<FacilityDTO> getAllFacilities() {
+        return facilityRepository.findAll()
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
     }
 
-    public Facility getFacilityById(Long id) {
-        return facilityRepository.findById(id)
+    public FacilityDTO getFacilityById(Long id) {
+        Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Facility", "id", id));
+        return facilityMapper.toDto(facility);
     }
 
     @Transactional
-    public Facility updateFacility(Long id, Facility facility) {
-        Facility existingFacility = getFacilityById(id);
-        existingFacility.setName(facility.getName());
-        existingFacility.setType(facility.getType());
-        existingFacility.setCapacity(facility.getCapacity());
-        existingFacility.setLocation(facility.getLocation());
-        existingFacility.setStatus(facility.getStatus());
-        return facilityRepository.save(existingFacility);
+    public FacilityDTO updateFacility(Long id, FacilityDTO facilityDTO) {
+        Facility existingFacility = facilityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facility", "id", id));
+
+        existingFacility.setName(facilityDTO.getName());
+        existingFacility.setType(facilityDTO.getType());
+        existingFacility.setCapacity(facilityDTO.getCapacity());
+        existingFacility.setLocation(facilityDTO.getLocation());
+        existingFacility.setStatus(facilityDTO.getStatus());
+
+        Facility updatedFacility = facilityRepository.save(existingFacility);
+        return facilityMapper.toDto(updatedFacility);
     }
 
     @Transactional
     public void deleteFacility(Long id) {
-        Facility facility = getFacilityById(id);
+        Facility facility = facilityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facility", "id", id));
         facilityRepository.delete(facility);
     }
 
-    public List<Facility> getFacilitiesByType(FacilityType type) {
-        return facilityRepository.findByType(type);
+    public List<FacilityDTO> getFacilitiesByType(FacilityType type) {
+        return facilityRepository.findByType(type)
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
     }
 
-    public List<Facility> getFacilitiesByCapacity(Integer capacity) {
-        return facilityRepository.findByCapacity(capacity);
+    public List<FacilityDTO> getFacilitiesByCapacity(Integer capacity) {
+        return facilityRepository.findByCapacity(capacity)
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
     }
 
-    public List<Facility> getFacilitiesByLocation(String location) {
-        return facilityRepository.findByLocationContainingIgnoreCase(location);
+    public List<FacilityDTO> getFacilitiesByLocation(String location) {
+        return facilityRepository.findByLocationContainingIgnoreCase(location)
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
     }
 
-    public List<Facility> getFilteredFacilities(FacilityType type, Integer capacity, String location) {
+    public List<FacilityDTO> getFilteredFacilities(FacilityType type, Integer capacity, String location) {
         Stream<Facility> facilities = facilityRepository.findAll().stream();
 
         if (type != null) {
@@ -77,6 +101,8 @@ public class FacilityService {
                     facility.getLocation().toLowerCase().contains(location.toLowerCase()));
         }
 
-        return facilities.toList();
+        return facilities
+                .map(facilityMapper::toDto)
+                .toList();
     }
 }
