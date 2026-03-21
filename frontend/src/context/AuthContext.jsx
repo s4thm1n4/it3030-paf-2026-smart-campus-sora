@@ -27,7 +27,8 @@ export function AuthProvider({ children }) {
 
   const login = async (googleCredential) => {
     const response = await authService.googleLogin(googleCredential);
-    const { token, user: userData } = response.data;
+    const { token, id, name, email, role, profilePictureUrl } = response.data;
+    const userData = { id, name, email, role, profilePictureUrl };
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
