@@ -1,5 +1,7 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import notificationService from '../services/notificationService';
 import {
   HiOutlineHome,
   HiOutlineBuildingOffice2,
@@ -13,12 +15,36 @@ const navItems = [
   { path: '/facilities', label: 'Facilities', icon: HiOutlineBuildingOffice2 },
   { path: '/bookings', label: 'Bookings', icon: HiOutlineCalendarDays },
   { path: '/tickets', label: 'Tickets', icon: HiOutlineWrenchScrewdriver },
-  { path: '/notifications', label: 'Alerts', icon: HiOutlineBell },
 ];
 
 export default function MainLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await notificationService.getUnreadCount();
+      setUnreadCount(res.data.count);
+    } catch {
+      // silently fail — badge is non-critical
+    }
+  }, [user]);
+
+  // Poll unread count every 30 seconds
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
+  // Refresh count when navigating away from notifications page
+  useEffect(() => {
+    if (location.pathname !== '/notifications') {
+      fetchUnreadCount();
+    }
+  }, [location.pathname, fetchUnreadCount]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -29,7 +55,7 @@ export default function MainLayout() {
             {/* Logo */}
             <div className="flex items-center">
               <Link to="/" className="text-xl font-bold text-indigo-600">
-                🏫 Smart Campus
+                Smart Campus
               </Link>
             </div>
 
@@ -51,8 +77,27 @@ export default function MainLayout() {
               ))}
             </div>
 
-            {/* User Menu */}
-            <div className="flex items-center gap-3">
+            {/* Bell + User Menu */}
+            <div className="flex items-center gap-4">
+              {/* Notification Bell */}
+              {user && (
+                <Link
+                  to="/notifications"
+                  className={`relative p-2 rounded-md transition-colors ${
+                    location.pathname === '/notifications'
+                      ? 'bg-indigo-50 text-indigo-700'
+                      : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <HiOutlineBell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              )}
+
               {user ? (
                 <>
                   <span className="text-sm text-gray-600">
