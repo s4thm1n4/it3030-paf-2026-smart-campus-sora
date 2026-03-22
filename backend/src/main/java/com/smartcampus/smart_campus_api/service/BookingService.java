@@ -6,6 +6,7 @@ import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
 import com.smartcampus.smart_campus_api.model.Booking;
 import com.smartcampus.smart_campus_api.model.BookingStatus;
 import com.smartcampus.smart_campus_api.model.Facility;
+import com.smartcampus.smart_campus_api.model.NotificationType;
 import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.repository.BookingRepository;
 import com.smartcampus.smart_campus_api.repository.FacilityRepository;
@@ -25,11 +26,14 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final FacilityRepository facilityRepository;
+    private final NotificationService notificationService;
 
     public BookingService(BookingRepository bookingRepository,
-                          FacilityRepository facilityRepository) {
+                          FacilityRepository facilityRepository,
+                          NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.facilityRepository = facilityRepository;
+        this.notificationService = notificationService;
     }
 
     /** Get all bookings. */
@@ -116,7 +120,17 @@ public class BookingService {
         booking.setAdminRemarks(remarks);
         booking.setReviewedBy(adminUser);
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        notificationService.createNotification(
+                booking.getRequestedBy().getId(),
+                "Booking Approved",
+                "Your booking for " + booking.getFacility().getName() + " on " + booking.getBookingDate() + " has been approved." + (remarks != null && !remarks.isBlank() ? " Remarks: " + remarks : ""),
+                NotificationType.BOOKING_APPROVED,
+                "/bookings"
+        );
+
+        return saved;
     }
 
     /**
@@ -134,6 +148,16 @@ public class BookingService {
         booking.setAdminRemarks(remarks);
         booking.setReviewedBy(adminUser);
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        notificationService.createNotification(
+                booking.getRequestedBy().getId(),
+                "Booking Rejected",
+                "Your booking for " + booking.getFacility().getName() + " on " + booking.getBookingDate() + " has been rejected." + (remarks != null && !remarks.isBlank() ? " Remarks: " + remarks : ""),
+                NotificationType.BOOKING_REJECTED,
+                "/bookings"
+        );
+
+        return saved;
     }
 }

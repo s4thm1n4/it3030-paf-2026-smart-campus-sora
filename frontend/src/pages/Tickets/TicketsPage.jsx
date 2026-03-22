@@ -61,7 +61,7 @@ function Badge({ text, colorClass }) {
 // ── Main Component ──
 
 export default function TicketsPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   // View state
   const [view, setView] = useState('list'); // 'list' | 'detail' | 'create'
@@ -494,7 +494,7 @@ export default function TicketsPage() {
             <StatusPipeline
               steps={['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']}
               current={t.status}
-              onStepClick={(step) => handleStatusChange(t.id, step)}
+              onStepClick={isAdmin() ? (step) => handleStatusChange(t.id, step) : undefined}
             />
           </div>
 
@@ -502,7 +502,7 @@ export default function TicketsPage() {
           <div className="mt-4 pt-4 border-t border-cell-border">
             <h3 className="label-caps text-xs font-mono font-medium text-on-surface-variant uppercase tracking-widest mb-3">ACTIONS</h3>
             <div className="flex flex-wrap gap-2">
-              {t.status !== 'REJECTED' && (
+              {isAdmin() && t.status !== 'REJECTED' && (
                 <button
                   onClick={() => handleStatusChange(t.id, 'REJECTED')}
                   className="px-3 py-1.5 text-xs font-mono font-medium border border-cell-border bg-error-container text-error hover:opacity-80 transition-opacity"
@@ -510,12 +510,14 @@ export default function TicketsPage() {
                   Reject Ticket
                 </button>
               )}
-              <button
-                onClick={() => handleAssign(t.id)}
-                className="px-3 py-1.5 text-xs font-mono font-medium border border-cell-border bg-accent-container text-accent hover:opacity-80 transition-opacity"
-              >
-                Assign Technician
-              </button>
+              {isAdmin() && (
+                <button
+                  onClick={() => handleAssign(t.id)}
+                  className="px-3 py-1.5 text-xs font-mono font-medium border border-cell-border bg-accent-container text-accent hover:opacity-80 transition-opacity"
+                >
+                  Assign Technician
+                </button>
+              )}
             </div>
           </div>
         </div>

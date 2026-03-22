@@ -6,6 +6,7 @@ import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
 import com.smartcampus.smart_campus_api.model.*;
 import com.smartcampus.smart_campus_api.repository.TicketRepository;
 import com.smartcampus.smart_campus_api.repository.UserRepository;
+import com.smartcampus.smart_campus_api.service.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,10 +23,13 @@ public class TicketService {
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public TicketService(TicketRepository ticketRepository, UserRepository userRepository) {
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository,
+                         NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     /** Get all tickets. */
@@ -111,7 +115,17 @@ public class TicketService {
             throw new BadRequestException("Invalid status: " + statusStr);
         }
 
-        return ticketRepository.save(ticket);
+        Ticket saved = ticketRepository.save(ticket);
+
+        notificationService.createNotification(
+                ticket.getCreatedBy().getId(),
+                "Ticket Status Updated",
+                "Your ticket \"" + ticket.getTitle() + "\" status changed to " + ticket.getStatus(),
+                NotificationType.TICKET_STATUS_CHANGED,
+                "/tickets"
+        );
+
+        return saved;
     }
 
     /** Assign a ticket to a technician and set status to IN_PROGRESS. */
@@ -125,6 +139,16 @@ public class TicketService {
         ticket.setAssignedTo(technician);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
 
-        return ticketRepository.save(ticket);
+        Ticket saved = ticketRepository.save(ticket);
+
+        notificationService.createNotification(
+                ticket.getAssignedTo().getId(),
+                "Ticket Assigned",
+                "You have been assigned to ticket: " + ticket.getTitle(),
+                NotificationType.TICKET_ASSIGNED,
+                "/tickets"
+        );
+
+        return saved;
     }
 }

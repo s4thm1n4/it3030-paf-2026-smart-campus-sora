@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import facilityService from '../../services/facilityService';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import Icon from '../../components/common/Icon';
 import ViewToggle from '../../components/common/ViewToggle';
@@ -54,6 +55,7 @@ const EMPTY_FORM = {
 };
 
 export default function FacilitiesPage() {
+  const { isAdmin } = useAuth();
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,13 +179,15 @@ export default function FacilitiesPage() {
         </div>
         <div className="flex items-center gap-3">
           <ViewToggle view={viewMode} onChange={setViewMode} views={['grid', 'list']} />
-          <button
-            onClick={openCreateForm}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-medium font-display rounded-none hover:bg-primary/90 transition-colors"
-          >
-            <Icon name="add" size={18} />
-            Add Facility
-          </button>
+          {isAdmin() && (
+            <button
+              onClick={openCreateForm}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-medium font-display rounded-none hover:bg-primary/90 transition-colors"
+            >
+              <Icon name="add" size={18} />
+              Add Facility
+            </button>
+          )}
         </div>
       </div>
 
@@ -391,22 +395,24 @@ export default function FacilitiesPage() {
                   <h3 className="text-base font-semibold font-display text-on-surface leading-tight">
                     {facility.name}
                   </h3>
-                  <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                    <button
-                      onClick={() => openEditForm(facility)}
-                      className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors"
-                      title="Edit"
-                    >
-                      <Icon name="edit" size={18} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(facility.id)}
-                      className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
-                      title="Delete"
-                    >
-                      <Icon name="delete" size={18} />
-                    </button>
-                  </div>
+                  {isAdmin() && (
+                    <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                      <button
+                        onClick={() => openEditForm(facility)}
+                        className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors"
+                        title="Edit"
+                      >
+                        <Icon name="edit" size={18} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmId(facility.id)}
+                        className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+                        title="Delete"
+                      >
+                        <Icon name="delete" size={18} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Badges */}
@@ -478,22 +484,24 @@ export default function FacilitiesPage() {
                 <div className="col-span-1 font-mono text-sm text-on-surface-variant">
                   {facility.capacity}
                 </div>
-                <div className="col-span-2 flex items-center justify-end gap-1">
-                  <button
-                    onClick={() => openEditForm(facility)}
-                    className="p-1.5 text-outline hover:text-primary hover:bg-primary/10 transition-colors"
-                    title="Edit"
-                  >
-                    <Icon name="edit" size={16} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteConfirmId(facility.id)}
-                    className="p-1.5 text-outline hover:text-error hover:bg-error/10 transition-colors"
-                    title="Delete"
-                  >
-                    <Icon name="delete" size={16} />
-                  </button>
-                </div>
+                {isAdmin() && (
+                  <div className="col-span-2 flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => openEditForm(facility)}
+                      className="p-1.5 text-outline hover:text-primary hover:bg-primary/10 transition-colors"
+                      title="Edit"
+                    >
+                      <Icon name="edit" size={16} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(facility.id)}
+                      className="p-1.5 text-outline hover:text-error hover:bg-error/10 transition-colors"
+                      title="Delete"
+                    >
+                      <Icon name="delete" size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -17,7 +17,7 @@ const STATUS_CONFIG = {
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 
 export default function BookingsPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   // Data state
   const [bookings, setBookings] = useState([]);
@@ -325,8 +325,8 @@ export default function BookingsPage() {
                       </button>
                     )}
 
-                    {/* Approve / Reject — PENDING bookings */}
-                    {booking.status === 'PENDING' && (
+                    {/* Approve / Reject — PENDING bookings (admin only) */}
+                    {booking.status === 'PENDING' && isAdmin() && (
                       <>
                         <button
                           onClick={() => openRemarkModal(booking.id, 'approve')}

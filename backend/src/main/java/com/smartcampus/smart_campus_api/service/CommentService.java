@@ -3,6 +3,7 @@ package com.smartcampus.smart_campus_api.service;
 import com.smartcampus.smart_campus_api.exception.BadRequestException;
 import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
 import com.smartcampus.smart_campus_api.model.Comment;
+import com.smartcampus.smart_campus_api.model.NotificationType;
 import com.smartcampus.smart_campus_api.model.Ticket;
 import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.repository.CommentRepository;
@@ -23,10 +24,13 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final TicketRepository ticketRepository;
+    private final NotificationService notificationService;
 
-    public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository) {
+    public CommentService(CommentRepository commentRepository, TicketRepository ticketRepository,
+                          NotificationService notificationService) {
         this.commentRepository = commentRepository;
         this.ticketRepository = ticketRepository;
+        this.notificationService = notificationService;
     }
 
     /** Get all comments for a ticket, ordered by createdAt ascending. */
@@ -46,7 +50,19 @@ public class CommentService {
                 .author(user)
                 .build();
 
-        return commentRepository.save(comment);
+        Comment saved = commentRepository.save(comment);
+
+        if (!user.getId().equals(ticket.getCreatedBy().getId())) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy().getId(),
+                    "New Comment",
+                    user.getName() + " commented on your ticket: " + ticket.getTitle(),
+                    NotificationType.NEW_COMMENT,
+                    "/tickets"
+            );
+        }
+
+        return saved;
     }
 
     /** Update a comment. Only the author can update. */
