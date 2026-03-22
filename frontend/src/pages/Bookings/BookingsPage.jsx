@@ -4,25 +4,14 @@ import facilityService from '../../services/facilityService';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
-import {
-  HiOutlineCalendarDays,
-  HiOutlineClock,
-  HiOutlineUserGroup,
-  HiOutlineMapPin,
-  HiOutlinePlus,
-  HiOutlineXMark,
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-  HiOutlineFunnel,
-  HiOutlineBuildingOffice2,
-  HiOutlineChatBubbleBottomCenterText,
-} from 'react-icons/hi2';
+import Icon from '../../components/common/Icon';
+import StatusPipeline from '../../components/common/StatusPipeline';
 
 const STATUS_CONFIG = {
-  PENDING:   { label: 'Pending',   bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  APPROVED:  { label: 'Approved',  bg: 'bg-green-100',  text: 'text-green-800' },
-  REJECTED:  { label: 'Rejected',  bg: 'bg-red-100',    text: 'text-red-800' },
-  CANCELLED: { label: 'Cancelled', bg: 'bg-gray-100',   text: 'text-gray-800' },
+  PENDING:   { label: 'Pending',   bg: 'bg-yellow-500/15', text: 'text-yellow-600' },
+  APPROVED:  { label: 'Approved',  bg: 'bg-success/15',    text: 'text-success' },
+  REJECTED:  { label: 'Rejected',  bg: 'bg-error/15',      text: 'text-error' },
+  CANCELLED: { label: 'Cancelled', bg: 'bg-on-surface/10', text: 'text-on-surface-variant' },
 };
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
@@ -163,7 +152,7 @@ export default function BookingsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full"></div>
       </div>
     );
   }
@@ -173,22 +162,24 @@ export default function BookingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Booking Management</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold font-display text-on-surface tracking-tight">
+            Booking Management
+          </h1>
+          <p className="text-sm text-on-surface-variant font-mono mt-1">
             {filtered.length} booking{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-none hover:bg-primary/90 transition-colors"
         >
-          <HiOutlinePlus className="w-4 h-4" />
+          <Icon name="add" size={18} />
           New Booking
         </button>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-6 mb-4 border-b border-cell-border">
         {[
           { key: 'my', label: 'My Bookings' },
           { key: 'all', label: 'All Bookings' },
@@ -196,10 +187,10 @@ export default function BookingsPage() {
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`pb-2.5 text-sm font-semibold transition-colors border-b-2 -mb-px ${
               tab === key
-                ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
             }`}
           >
             {label}
@@ -209,15 +200,15 @@ export default function BookingsPage() {
 
       {/* Status Filters */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-        <HiOutlineFunnel className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <Icon name="filter_list" size={18} className="text-outline flex-shrink-0" />
         {STATUS_FILTERS.map((status) => (
           <button
             key={status}
             onClick={() => setStatusFilter(status)}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors ${
               statusFilter === status
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-container-lowest text-on-surface-variant border border-cell-border hover:bg-surface'
             }`}
           >
             {status === 'All' ? 'All' : STATUS_CONFIG[status]?.label || status}
@@ -227,17 +218,17 @@ export default function BookingsPage() {
 
       {/* Booking List */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <HiOutlineCalendarDays className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-gray-500 text-lg">No bookings found</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="text-center py-16 border border-cell-border bg-surface-container-lowest">
+          <Icon name="calendar_month" size={48} className="text-outline mx-auto" />
+          <p className="mt-4 text-on-surface text-lg font-display">No bookings found</p>
+          <p className="text-on-surface-variant text-sm mt-1">
             {statusFilter !== 'All'
               ? 'Try a different filter'
               : 'Create a new booking to get started'}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filtered.map((booking) => {
             const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
             const isOwn = booking.requestedBy?.id === user?.id;
@@ -245,65 +236,80 @@ export default function BookingsPage() {
             return (
               <div
                 key={booking.id}
-                className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-sm transition-shadow"
+                className="bg-surface-container-lowest border border-cell-border rounded-none p-5 hover:border-primary/40 transition-colors"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   {/* Left: booking details */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <HiOutlineBuildingOffice2 className="w-5 h-5 text-indigo-600 flex-shrink-0" />
-                      <h3 className="text-base font-semibold text-gray-900 truncate">
+                      <Icon name="apartment" size={20} className="text-primary flex-shrink-0" />
+                      <h3 className="text-base font-semibold font-display text-on-surface truncate">
                         {booking.facility?.name || 'Unknown Facility'}
                       </h3>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusCfg.bg} ${statusCfg.text}`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusCfg.bg} ${statusCfg.text}`}
                       >
                         {statusCfg.label}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-on-surface-variant">
                       <div className="flex items-center gap-1.5">
-                        <HiOutlineCalendarDays className="w-4 h-4 text-gray-400" />
-                        {dayjs(booking.bookingDate).format('MMM D, YYYY')}
+                        <Icon name="calendar_month" size={16} className="text-outline" />
+                        <span className="font-mono text-xs">
+                          {dayjs(booking.bookingDate).format('MMM D, YYYY')}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <HiOutlineClock className="w-4 h-4 text-gray-400" />
-                        {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
+                        <Icon name="schedule" size={16} className="text-outline" />
+                        <span className="font-mono text-xs">
+                          {booking.startTime?.slice(0, 5)} - {booking.endTime?.slice(0, 5)}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <HiOutlineUserGroup className="w-4 h-4 text-gray-400" />
-                        {booking.attendeeCount} attendee{booking.attendeeCount !== 1 ? 's' : ''}
+                        <Icon name="group" size={16} className="text-outline" />
+                        <span className="font-mono text-xs">
+                          {booking.attendeeCount} attendee{booking.attendeeCount !== 1 ? 's' : ''}
+                        </span>
                       </div>
                       {booking.facility?.location && (
                         <div className="flex items-center gap-1.5">
-                          <HiOutlineMapPin className="w-4 h-4 text-gray-400" />
-                          {booking.facility.location}
+                          <Icon name="location_on" size={16} className="text-outline" />
+                          <span className="font-mono text-xs">{booking.facility.location}</span>
                         </div>
                       )}
                     </div>
 
                     {booking.purpose && (
-                      <p className="mt-2 text-sm text-gray-500">
-                        <span className="font-medium text-gray-700">Purpose:</span> {booking.purpose}
+                      <p className="mt-2 text-sm text-on-surface-variant">
+                        <span className="font-semibold text-on-surface label-caps text-xs tracking-wider uppercase">Purpose:</span>{' '}
+                        {booking.purpose}
                       </p>
                     )}
 
                     {booking.adminRemarks && (
                       <div className="mt-2 flex items-start gap-1.5 text-sm">
-                        <HiOutlineChatBubbleBottomCenterText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <p className="text-gray-500">
-                          <span className="font-medium text-gray-700">Admin remarks:</span>{' '}
+                        <Icon name="comment" size={16} className="text-outline mt-0.5 flex-shrink-0" />
+                        <p className="text-on-surface-variant">
+                          <span className="font-semibold text-on-surface label-caps text-xs tracking-wider uppercase">Admin remarks:</span>{' '}
                           {booking.adminRemarks}
                         </p>
                       </div>
                     )}
 
                     {booking.requestedBy && tab === 'all' && (
-                      <p className="mt-1 text-xs text-gray-400">
+                      <p className="mt-1 text-xs text-outline font-mono">
                         Requested by {booking.requestedBy.name || booking.requestedBy.email}
                       </p>
                     )}
+
+                    {/* Booking workflow pipeline */}
+                    <div className="mt-3 pt-3 border-t border-cell-border">
+                      <StatusPipeline
+                        steps={['PENDING', 'APPROVED']}
+                        current={booking.status === 'REJECTED' ? 'PENDING' : booking.status === 'CANCELLED' ? 'PENDING' : booking.status}
+                      />
+                    </div>
                   </div>
 
                   {/* Right: actions */}
@@ -312,9 +318,9 @@ export default function BookingsPage() {
                     {isOwn && booking.status === 'PENDING' && (
                       <button
                         onClick={() => handleCancel(booking.id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
                       >
-                        <HiOutlineXMark className="w-4 h-4" />
+                        <Icon name="close" size={16} />
                         Cancel
                       </button>
                     )}
@@ -324,16 +330,16 @@ export default function BookingsPage() {
                       <>
                         <button
                           onClick={() => openRemarkModal(booking.id, 'approve')}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-white bg-success rounded-none hover:bg-success/90 transition-colors"
                         >
-                          <HiOutlineCheckCircle className="w-4 h-4" />
+                          <Icon name="check_circle" size={16} />
                           Approve
                         </button>
                         <button
                           onClick={() => openRemarkModal(booking.id, 'reject')}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-white bg-error rounded-none hover:bg-error/90 transition-colors"
                         >
-                          <HiOutlineXCircle className="w-4 h-4" />
+                          <Icon name="cancel" size={16} />
                           Reject
                         </button>
                       </>
@@ -348,28 +354,30 @@ export default function BookingsPage() {
 
       {/* New Booking Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-semibold text-gray-900">New Booking</h2>
+              <h2 className="text-lg font-bold font-display text-on-surface">New Booking</h2>
               <button
                 onClick={() => setShowForm(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
               >
-                <HiOutlineXMark className="w-5 h-5" />
+                <Icon name="close" size={20} />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               {/* Facility */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Facility</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+                  Facility
+                </label>
                 <select
                   name="facilityId"
                   value={form.facilityId}
                   onChange={handleFormChange}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 >
                   <option value="">Select a facility</option>
                   {facilities.map((f) => (
@@ -382,46 +390,54 @@ export default function BookingsPage() {
 
               {/* Date */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+                  Date
+                </label>
                 <input
                   type="date"
                   name="bookingDate"
                   value={form.bookingDate}
                   onChange={handleFormChange}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
 
               {/* Time Range */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+                    Start Time
+                  </label>
                   <input
                     type="time"
                     name="startTime"
                     value={form.startTime}
                     onChange={handleFormChange}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+                    End Time
+                  </label>
                   <input
                     type="time"
                     name="endTime"
                     value={form.endTime}
                     onChange={handleFormChange}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   />
                 </div>
               </div>
 
               {/* Purpose */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Purpose</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+                  Purpose
+                </label>
                 <textarea
                   name="purpose"
                   value={form.purpose}
@@ -429,13 +445,15 @@ export default function BookingsPage() {
                   required
                   rows={3}
                   placeholder="Describe the purpose of your booking..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                  className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
                 />
               </div>
 
               {/* Attendee Count */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Attendees</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
+                  Number of Attendees
+                </label>
                 <input
                   type="number"
                   name="attendeeCount"
@@ -443,7 +461,7 @@ export default function BookingsPage() {
                   onChange={handleFormChange}
                   min={1}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
 
@@ -452,14 +470,14 @@ export default function BookingsPage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold text-on-primary bg-primary rounded-none hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {submitting ? 'Submitting...' : 'Submit Booking'}
                 </button>
@@ -471,13 +489,13 @@ export default function BookingsPage() {
 
       {/* Admin Remarks Modal */}
       {remarkBookingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-md mx-4 p-6">
+            <h2 className="text-lg font-bold font-display text-on-surface mb-4">
               {remarkAction === 'approve' ? 'Approve Booking' : 'Reject Booking'}
             </h2>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
                 Remarks (optional)
               </label>
               <textarea
@@ -485,7 +503,7 @@ export default function BookingsPage() {
                 onChange={(e) => setRemarkText(e.target.value)}
                 rows={3}
                 placeholder="Add any remarks..."
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-none"
               />
             </div>
             <div className="flex justify-end gap-3 mt-4">
@@ -495,16 +513,16 @@ export default function BookingsPage() {
                   setRemarkAction(null);
                   setRemarkText('');
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdminAction}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-none transition-colors ${
                   remarkAction === 'approve'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                    ? 'bg-success hover:bg-success/90'
+                    : 'bg-error hover:bg-error/90'
                 }`}
               >
                 {remarkAction === 'approve' ? 'Approve' : 'Reject'}

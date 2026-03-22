@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  HiOutlineBuildingOffice2,
-  HiOutlineCalendarDays,
-  HiOutlineWrenchScrewdriver,
-  HiOutlineBell,
-} from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -14,6 +8,7 @@ import facilityService from '../../services/facilityService';
 import bookingService from '../../services/bookingService';
 import ticketService from '../../services/ticketService';
 import notificationService from '../../services/notificationService';
+import Icon from '../../components/common/Icon';
 
 dayjs.extend(relativeTime);
 
@@ -63,7 +58,7 @@ export default function HomePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-none border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -72,124 +67,152 @@ export default function HomePage() {
     {
       label: 'Total Facilities',
       value: stats.facilities,
-      icon: HiOutlineBuildingOffice2,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
+      icon: 'apartment',
+      accent: 'text-primary',
+      accentBg: 'bg-primary-container',
     },
     {
       label: 'My Bookings',
       value: stats.bookings,
-      icon: HiOutlineCalendarDays,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-      border: 'border-green-200',
+      icon: 'calendar_month',
+      accent: 'text-primary',
+      accentBg: 'bg-primary-container',
     },
     {
       label: 'My Tickets',
       value: stats.tickets,
-      icon: HiOutlineWrenchScrewdriver,
-      color: 'text-orange-600',
-      bg: 'bg-orange-50',
-      border: 'border-orange-200',
+      icon: 'confirmation_number',
+      accent: 'text-accent',
+      accentBg: 'bg-accent/10',
     },
     {
-      label: 'Unread Notifications',
+      label: 'Unread Alerts',
       value: stats.unreadNotifications,
-      icon: HiOutlineBell,
-      color: 'text-red-600',
-      bg: 'bg-red-50',
-      border: 'border-red-200',
+      icon: 'notifications',
+      accent: 'text-accent',
+      accentBg: 'bg-accent/10',
     },
   ];
 
   return (
     <div className="space-y-8">
-      {/* Welcome Banner */}
-      <div className="flex items-center gap-4 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white shadow-lg">
+      {/* ── Welcome Banner ── */}
+      <div className="cell-border bg-surface-container p-6 flex items-center gap-5">
         {user?.profilePictureUrl ? (
           <img
             src={user.profilePictureUrl}
             alt={user.name}
-            className="h-16 w-16 rounded-full border-2 border-white/50 object-cover"
+            className="h-16 w-16 rounded-full border-2 border-primary object-cover"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-2xl font-bold">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-on-primary font-display text-2xl font-bold">
             {user?.name?.charAt(0) ?? '?'}
           </div>
         )}
         <div>
-          <h1 className="text-2xl font-bold">Welcome back, {user?.name ?? 'User'}!</h1>
-          <p className="text-indigo-100">Here is an overview of your Smart Campus activity.</p>
+          <h1 className="font-display text-2xl font-bold text-on-surface">
+            Welcome back, {user?.name ?? 'User'}
+          </h1>
+          <p className="mt-0.5 text-sm text-on-surface-variant font-mono">
+            // sora-ums overview &mdash; {dayjs().format('YYYY-MM-DD')}
+          </p>
+        </div>
+        <div className="ml-auto hidden sm:flex items-center gap-2">
+          <span className="label-caps text-on-surface-variant text-xs">Status</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            Online
+          </span>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className={`rounded-xl border ${card.border} ${card.bg} p-5 shadow-sm transition hover:shadow-md`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500">{card.label}</p>
-                <p className={`mt-1 text-3xl font-bold ${card.color}`}>{card.value}</p>
+      {/* ── Stat Cards — Bento Grid ── */}
+      <div>
+        <h2 className="label-caps text-on-surface-variant text-xs mb-3">Dashboard Metrics</h2>
+        <div className="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-4">
+          {statCards.map((card) => (
+            <div
+              key={card.label}
+              className="cell-border bg-surface p-5 flex flex-col justify-between gap-4 transition hover:bg-surface-container-low"
+            >
+              <div className="flex items-center justify-between">
+                <span className="label-caps text-on-surface-variant text-xs">{card.label}</span>
+                <div className={`${card.accentBg} p-2`}>
+                  <Icon name={card.icon} className={card.accent} size={20} />
+                </div>
               </div>
-              <card.icon className={`h-10 w-10 ${card.color} opacity-70`} />
+              <p className={`font-display text-4xl font-bold ${card.accent}`}>
+                {card.value}
+              </p>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* ── Quick Actions ── */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-700">Quick Actions</h2>
+        <h2 className="label-caps text-on-surface-variant text-xs mb-3">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
           <Link
             to="/facilities"
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
+            className="cell-border inline-flex items-center gap-2 bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
           >
-            <HiOutlineBuildingOffice2 className="h-5 w-5" />
+            <Icon name="apartment" size={18} />
             Browse Facilities
+            <Icon name="arrow_forward" size={16} />
           </Link>
           <Link
             to="/bookings"
-            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-green-700"
+            className="cell-border inline-flex items-center gap-2 bg-surface px-5 py-2.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low"
           >
-            <HiOutlineCalendarDays className="h-5 w-5" />
+            <Icon name="calendar_month" size={18} />
             My Bookings
+            <Icon name="arrow_forward" size={16} />
           </Link>
           <Link
             to="/tickets"
-            className="inline-flex items-center gap-2 rounded-lg bg-orange-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-orange-700"
+            className="cell-border inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent/90"
           >
-            <HiOutlineWrenchScrewdriver className="h-5 w-5" />
+            <Icon name="confirmation_number" size={18} />
             Report an Issue
+            <Icon name="arrow_forward" size={16} />
           </Link>
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* ── Recent Activity ── */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-gray-700">Recent Activity</h2>
+        <h2 className="label-caps text-on-surface-variant text-xs mb-3">Recent Activity</h2>
         {recentNotifications.length === 0 ? (
-          <p className="rounded-lg bg-gray-50 p-6 text-center text-gray-400">
-            No recent activity to show.
-          </p>
+          <div className="cell-border bg-surface-container-low p-8 text-center">
+            <Icon name="notifications" className="text-outline mx-auto mb-2" size={32} />
+            <p className="text-sm text-on-surface-variant font-mono">
+              No recent activity to display.
+            </p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white shadow-sm">
-            {recentNotifications.map((notif) => (
-              <div key={notif.id} className="flex items-start gap-3 px-5 py-4">
-                <HiOutlineBell
-                  className={`mt-0.5 h-5 w-5 shrink-0 ${notif.read ? 'text-gray-300' : 'text-red-500'}`}
+          <div className="cell-border bg-surface overflow-hidden">
+            {recentNotifications.map((notif, idx) => (
+              <div
+                key={notif.id}
+                className={`flex items-start gap-3 px-5 py-4 transition hover:bg-surface-container-low ${
+                  idx < recentNotifications.length - 1 ? 'border-b border-cell-border' : ''
+                }`}
+              >
+                <Icon
+                  name="notifications"
+                  className={`mt-0.5 shrink-0 ${notif.read ? 'text-outline' : 'text-accent'}`}
+                  size={20}
+                  filled={!notif.read}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-800">{notif.title ?? 'Notification'}</p>
-                  <p className="truncate text-sm text-gray-500">{notif.message}</p>
+                  <p className="text-sm font-semibold text-on-surface">
+                    {notif.title ?? 'Notification'}
+                  </p>
+                  <p className="truncate text-sm text-on-surface-variant">{notif.message}</p>
                 </div>
-                <span className="shrink-0 text-xs text-gray-400">
+                <span className="shrink-0 text-xs font-mono text-outline">
                   {notif.createdAt ? dayjs(notif.createdAt).fromNow() : ''}
                 </span>
               </div>

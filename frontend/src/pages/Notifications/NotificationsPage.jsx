@@ -3,27 +3,17 @@ import notificationService from '../../services/notificationService';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import {
-  HiOutlineCheckCircle,
-  HiOutlineXCircle,
-  HiOutlineWrenchScrewdriver,
-  HiOutlineUserPlus,
-  HiOutlineChatBubbleLeft,
-  HiOutlineBell,
-  HiOutlineTrash,
-  HiOutlineCheckBadge,
-  HiOutlineFunnel,
-} from 'react-icons/hi2';
+import Icon from '../../components/common/Icon';
 
 dayjs.extend(relativeTime);
 
 const TYPE_CONFIG = {
-  BOOKING_APPROVED: { icon: HiOutlineCheckCircle, color: 'text-green-600', bg: 'bg-green-50', label: 'Approved' },
-  BOOKING_REJECTED: { icon: HiOutlineXCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'Rejected' },
-  TICKET_STATUS_CHANGED: { icon: HiOutlineWrenchScrewdriver, color: 'text-blue-600', bg: 'bg-blue-50', label: 'Ticket' },
-  TICKET_ASSIGNED: { icon: HiOutlineUserPlus, color: 'text-purple-600', bg: 'bg-purple-50', label: 'Assigned' },
-  NEW_COMMENT: { icon: HiOutlineChatBubbleLeft, color: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Comment' },
-  SYSTEM: { icon: HiOutlineBell, color: 'text-gray-600', bg: 'bg-gray-50', label: 'System' },
+  BOOKING_APPROVED: { icon: 'check_circle', color: 'text-success', bg: 'bg-success/10', label: 'Approved' },
+  BOOKING_REJECTED: { icon: 'cancel', color: 'text-error', bg: 'bg-error/10', label: 'Rejected' },
+  TICKET_STATUS_CHANGED: { icon: 'build', color: 'text-primary', bg: 'bg-primary/10', label: 'Ticket' },
+  TICKET_ASSIGNED: { icon: 'person_add', color: 'text-accent', bg: 'bg-accent/10', label: 'Assigned' },
+  NEW_COMMENT: { icon: 'chat', color: 'text-warning', bg: 'bg-warning/10', label: 'Comment' },
+  SYSTEM: { icon: 'notifications', color: 'text-outline', bg: 'bg-outline/10', label: 'System' },
 };
 
 const FILTERS = [
@@ -102,27 +92,29 @@ export default function NotificationsPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin h-8 w-8 border-b-2 border-primary rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="bg-surface min-h-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="font-display text-2xl font-bold text-on-surface tracking-tight">
+            Notifications
+          </h1>
+          <p className="text-sm text-on-surface-variant mt-1">
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </p>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-medium rounded-none hover:bg-primary/90 transition-colors"
           >
-            <HiOutlineCheckBadge className="w-4 h-4" />
+            <Icon name="verified" size={16} />
             Mark all as read
           </button>
         )}
@@ -130,15 +122,15 @@ export default function NotificationsPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-        <HiOutlineFunnel className="w-4 h-4 text-gray-400 flex-shrink-0" />
+        <Icon name="filter_list" size={16} className="text-outline flex-shrink-0" />
         {FILTERS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setFilter(key)}
             className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
               filter === key
-                ? 'bg-indigo-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container-lowest/80 border border-cell-border'
             }`}
           >
             {label}
@@ -146,50 +138,54 @@ export default function NotificationsPage() {
         ))}
       </div>
 
+      {/* Section heading */}
+      <p className="label-caps text-outline mb-3 text-xs font-semibold uppercase tracking-widest">
+        {filter === 'ALL' ? 'All Notifications' : filter === 'UNREAD' ? 'Unread' : `${FILTERS.find(f => f.key === filter)?.label}`}
+      </p>
+
       {/* Notification List */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <HiOutlineBell className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-4 text-gray-500 text-lg">No notifications</p>
-          <p className="text-gray-400 text-sm mt-1">
+        <div className="text-center py-16 bg-surface-container-lowest border border-cell-border rounded-none">
+          <Icon name="notifications" size={48} className="text-outline mx-auto" />
+          <p className="mt-4 text-on-surface text-lg font-display">No notifications</p>
+          <p className="text-on-surface-variant text-sm mt-1">
             {filter !== 'ALL' ? 'Try a different filter' : "You're all caught up"}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filtered.map((notification) => {
             const config = TYPE_CONFIG[notification.type] || TYPE_CONFIG.SYSTEM;
-            const Icon = config.icon;
 
             return (
               <div
                 key={notification.id}
-                className={`flex items-start gap-4 p-4 rounded-lg border transition-colors ${
+                className={`flex items-start gap-4 p-4 border transition-colors rounded-none ${
                   notification.read
-                    ? 'bg-white border-gray-200'
-                    : 'bg-indigo-50/50 border-indigo-200'
+                    ? 'bg-surface-container-lowest border-cell-border'
+                    : 'bg-primary-container/30 border-primary'
                 }`}
               >
                 {/* Type Icon */}
-                <div className={`flex-shrink-0 p-2 rounded-lg ${config.bg}`}>
-                  <Icon className={`w-5 h-5 ${config.color}`} />
+                <div className={`flex-shrink-0 p-2 rounded-none ${config.bg}`}>
+                  <Icon name={config.icon} size={20} className={config.color} />
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className={`text-sm ${notification.read ? 'text-gray-700' : 'text-gray-900 font-semibold'}`}>
+                    <p className={`text-sm ${notification.read ? 'text-on-surface-variant' : 'text-on-surface font-semibold'}`}>
                       {notification.title}
                     </p>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
                       {config.label}
                     </span>
                     {!notification.read && (
-                      <span className="w-2 h-2 rounded-full bg-indigo-600 flex-shrink-0"></span>
+                      <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0"></span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">{notification.message}</p>
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-sm text-on-surface-variant mt-1">{notification.message}</p>
+                  <p className="text-xs text-outline mt-2 font-mono">
                     {dayjs(notification.createdAt).fromNow()}
                   </p>
                 </div>
@@ -199,18 +195,18 @@ export default function NotificationsPage() {
                   {!notification.read && (
                     <button
                       onClick={() => handleMarkAsRead(notification.id)}
-                      className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                      className="p-1.5 text-outline hover:text-primary hover:bg-primary/10 rounded-none transition-colors"
                       title="Mark as read"
                     >
-                      <HiOutlineCheckCircle className="w-5 h-5" />
+                      <Icon name="check_circle" size={20} />
                     </button>
                   )}
                   <button
                     onClick={() => handleDelete(notification.id)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    className="p-1.5 text-outline hover:text-error hover:bg-error/10 rounded-none transition-colors"
                     title="Delete"
                   >
-                    <HiOutlineTrash className="w-5 h-5" />
+                    <Icon name="delete" size={20} />
                   </button>
                 </div>
               </div>
