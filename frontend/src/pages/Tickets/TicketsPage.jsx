@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import ticketService from '../../services/ticketService';
 import { useAuth } from '../../context/AuthContext';
 import Icon from '../../components/common/Icon';
+import ViewToggle from '../../components/common/ViewToggle';
+import StatusPipeline from '../../components/common/StatusPipeline';
+import StatusBadge from '../../components/common/StatusBadge';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -63,6 +66,7 @@ export default function TicketsPage() {
   // View state
   const [view, setView] = useState('list'); // 'list' | 'detail' | 'create'
   const [tab, setTab] = useState('all'); // 'all' | 'my'
+  const [listMode, setListMode] = useState('grid'); // 'grid' | 'list'
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('');
@@ -484,19 +488,28 @@ export default function TicketsPage() {
             </div>
           )}
 
-          {/* Status workflow buttons */}
+          {/* Status Pipeline — ClickUp-inspired workflow visualization */}
           <div className="mt-6 pt-4 border-t border-cell-border">
-            <h3 className="label-caps text-xs font-mono font-medium text-on-surface-variant uppercase tracking-widest mb-3">Actions</h3>
+            <h3 className="label-caps text-xs font-mono font-medium text-on-surface-variant uppercase tracking-widest mb-3">WORKFLOW STATUS</h3>
+            <StatusPipeline
+              steps={['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']}
+              current={t.status}
+              onStepClick={(step) => handleStatusChange(t.id, step)}
+            />
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mt-4 pt-4 border-t border-cell-border">
+            <h3 className="label-caps text-xs font-mono font-medium text-on-surface-variant uppercase tracking-widest mb-3">ACTIONS</h3>
             <div className="flex flex-wrap gap-2">
-              {STATUSES.filter((s) => s !== t.status).map((s) => (
+              {t.status !== 'REJECTED' && (
                 <button
-                  key={s}
-                  onClick={() => handleStatusChange(t.id, s)}
-                  className={`px-3 py-1.5 text-xs font-mono font-medium border border-cell-border ${STATUS_COLORS[s]} hover:opacity-80 transition-opacity`}
+                  onClick={() => handleStatusChange(t.id, 'REJECTED')}
+                  className="px-3 py-1.5 text-xs font-mono font-medium border border-cell-border bg-error-container text-error hover:opacity-80 transition-opacity"
                 >
-                  Mark as {s.replace('_', ' ')}
+                  Reject Ticket
                 </button>
-              ))}
+              )}
               <button
                 onClick={() => handleAssign(t.id)}
                 className="px-3 py-1.5 text-xs font-mono font-medium border border-cell-border bg-accent-container text-accent hover:opacity-80 transition-opacity"
@@ -628,12 +641,15 @@ export default function TicketsPage() {
           <h1 className="text-2xl font-display font-bold text-on-surface">Maintenance & Incident Tickets</h1>
           <p className="text-sm text-on-surface-variant mt-1 font-sans">Report and track campus maintenance issues</p>
         </div>
-        <button
-          onClick={() => setView('create')}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 font-sans font-medium text-sm transition-colors"
-        >
-          <Icon name="add" size={18} /> Create Ticket
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={listMode} onChange={setListMode} views={['grid', 'list']} />
+          <button
+            onClick={() => setView('create')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white hover:bg-primary/90 font-sans font-medium text-sm transition-colors"
+          >
+            <Icon name="add" size={18} /> Create Ticket
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -716,8 +732,8 @@ export default function TicketsPage() {
         </div>
       )}
 
-      {/* Ticket cards — bento grid */}
-      {!loading && filteredTickets.length > 0 && (
+      {/* Ticket cards — GRID VIEW */}
+      {!loading && filteredTickets.length > 0 && listMode === 'grid' && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredTickets.map((t) => (
             <div
@@ -749,6 +765,52 @@ export default function TicketsPage() {
                     <Icon name="person" size={14} /> {t.assignedTo.name}
                   </div>
                 )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Ticket rows — LIST VIEW */}
+      {!loading && filteredTickets.length > 0 && listMode === 'list' && (
+        <div className="border border-cell-border bg-surface-container-lowest">
+          {/* Table Header */}
+          <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-5 py-2.5 border-b border-cell-border bg-surface-container">
+            <span className="col-span-4 label-caps text-[10px] text-outline">TITLE</span>
+            <span className="col-span-2 label-caps text-[10px] text-outline">CATEGORY</span>
+            <span className="col-span-1 label-caps text-[10px] text-outline">PRIORITY</span>
+            <span className="col-span-2 label-caps text-[10px] text-outline">STATUS</span>
+            <span className="col-span-1 label-caps text-[10px] text-outline">ASSIGNED</span>
+            <span className="col-span-2 label-caps text-[10px] text-outline">CREATED</span>
+          </div>
+          {filteredTickets.map((t) => (
+            <div
+              key={t.id}
+              onClick={() => openTicketDetail(t.id)}
+              className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-center px-5 py-3 border-b border-cell-border last:border-b-0 hover:bg-surface-container-low cursor-pointer transition-colors"
+            >
+              <div className="col-span-4">
+                <p className="text-sm font-semibold font-display text-on-surface truncate">{t.title}</p>
+                {t.location && (
+                  <p className="text-xs text-outline flex items-center gap-1 mt-0.5">
+                    <Icon name="location_on" size={12} /> {t.location}
+                  </p>
+                )}
+              </div>
+              <div className="col-span-2">
+                <Badge text={t.category} colorClass="bg-primary-container text-primary" />
+              </div>
+              <div className="col-span-1">
+                <Badge text={t.priority} colorClass={PRIORITY_COLORS[t.priority]} />
+              </div>
+              <div className="col-span-2">
+                <StatusBadge status={t.status} type="ticket" />
+              </div>
+              <div className="col-span-1 text-xs text-on-surface-variant truncate">
+                {t.assignedTo?.name || '—'}
+              </div>
+              <div className="col-span-2 font-mono text-xs text-outline">
+                {dayjs(t.createdAt).fromNow()}
               </div>
             </div>
           ))}

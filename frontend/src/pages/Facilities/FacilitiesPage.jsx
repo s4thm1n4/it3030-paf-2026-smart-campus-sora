@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import facilityService from '../../services/facilityService';
 import toast from 'react-hot-toast';
 import Icon from '../../components/common/Icon';
+import ViewToggle from '../../components/common/ViewToggle';
+import StatusBadge from '../../components/common/StatusBadge';
 
 const FACILITY_TYPES = [
   'LECTURE_HALL',
@@ -16,19 +18,13 @@ const FACILITY_TYPES = [
 const FACILITY_STATUSES = ['ACTIVE', 'OUT_OF_SERVICE', 'UNDER_MAINTENANCE'];
 
 const TYPE_COLORS = {
-  LECTURE_HALL: 'bg-blue-100 text-blue-700',
-  LABORATORY: 'bg-purple-100 text-purple-700',
-  MEETING_ROOM: 'bg-teal-100 text-teal-700',
-  AUDITORIUM: 'bg-pink-100 text-pink-700',
-  EQUIPMENT: 'bg-orange-100 text-orange-700',
-  SPORTS_FACILITY: 'bg-emerald-100 text-emerald-700',
-  OTHER: 'bg-gray-100 text-gray-700',
-};
-
-const STATUS_COLORS = {
-  ACTIVE: 'bg-green-100 text-green-700',
-  OUT_OF_SERVICE: 'bg-red-100 text-red-700',
-  UNDER_MAINTENANCE: 'bg-yellow-100 text-yellow-700',
+  LECTURE_HALL: 'bg-primary-container text-primary',
+  LABORATORY: 'bg-accent-container text-accent',
+  MEETING_ROOM: 'bg-success-container text-success',
+  AUDITORIUM: 'bg-warning-container text-on-warning',
+  EQUIPMENT: 'bg-accent-container text-accent-dim',
+  SPORTS_FACILITY: 'bg-success-container text-success',
+  OTHER: 'bg-surface-container text-outline',
 };
 
 const STATUS_LABELS = {
@@ -68,6 +64,7 @@ export default function FacilitiesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
 
   const fetchFacilities = useCallback(async () => {
     try {
@@ -178,13 +175,16 @@ export default function FacilitiesPage() {
             {facilities.length} {facilities.length === 1 ? 'facility' : 'facilities'} registered
           </p>
         </div>
-        <button
-          onClick={openCreateForm}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-medium font-display rounded-none hover:bg-primary/90 transition-colors"
-        >
-          <Icon name="add" size={18} />
-          Add Facility
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle view={viewMode} onChange={setViewMode} views={['grid', 'list']} />
+          <button
+            onClick={openCreateForm}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-medium font-display rounded-none hover:bg-primary/90 transition-colors"
+          >
+            <Icon name="add" size={18} />
+            Add Facility
+          </button>
+        </div>
       </div>
 
       {/* Search & Filters */}
@@ -377,66 +377,128 @@ export default function FacilitiesPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((facility) => (
-            <div
-              key={facility.id}
-              className="bg-surface-container-lowest border border-cell-border rounded-none p-5 hover:shadow-md transition-shadow"
-            >
-              {/* Card Header */}
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="text-base font-semibold font-display text-on-surface leading-tight">
-                  {facility.name}
-                </h3>
-                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        <>
+        {/* ── GRID VIEW ── */}
+        {viewMode === 'grid' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map((facility) => (
+              <div
+                key={facility.id}
+                className="bg-surface-container-lowest border border-cell-border p-5 hover:border-primary/40 transition-colors"
+              >
+                {/* Card Header */}
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-base font-semibold font-display text-on-surface leading-tight">
+                    {facility.name}
+                  </h3>
+                  <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                    <button
+                      onClick={() => openEditForm(facility)}
+                      className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors"
+                      title="Edit"
+                    >
+                      <Icon name="edit" size={18} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(facility.id)}
+                      className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 transition-colors"
+                      title="Delete"
+                    >
+                      <Icon name="delete" size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Badges */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono ${TYPE_COLORS[facility.type] || TYPE_COLORS.OTHER}`}>
+                    {TYPE_LABELS[facility.type] || facility.type}
+                  </span>
+                  <StatusBadge status={facility.status} type="facility" />
+                </div>
+
+                {/* Details */}
+                <div className="space-y-1.5 text-sm text-on-surface-variant mb-3">
+                  <div className="flex items-center gap-1.5">
+                    <Icon name="location_on" size={16} className="flex-shrink-0" />
+                    <span>{facility.location}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Icon name="group" size={16} className="flex-shrink-0" />
+                    <span className="font-mono">Capacity: {facility.capacity}</span>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {facility.description && (
+                  <p className="text-sm text-outline line-clamp-2">
+                    {facility.description}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── LIST VIEW ── */}
+        {viewMode === 'list' && (
+          <div className="border border-cell-border bg-surface-container-lowest">
+            {/* Table Header */}
+            <div className="hidden sm:grid sm:grid-cols-12 gap-4 px-5 py-2.5 border-b border-cell-border bg-surface-container">
+              <span className="col-span-3 label-caps text-[10px] text-outline">NAME</span>
+              <span className="col-span-2 label-caps text-[10px] text-outline">TYPE</span>
+              <span className="col-span-2 label-caps text-[10px] text-outline">STATUS</span>
+              <span className="col-span-2 label-caps text-[10px] text-outline">LOCATION</span>
+              <span className="col-span-1 label-caps text-[10px] text-outline">CAPACITY</span>
+              <span className="col-span-2 label-caps text-[10px] text-outline text-right">ACTIONS</span>
+            </div>
+            {filtered.map((facility) => (
+              <div
+                key={facility.id}
+                className="grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-center px-5 py-3 border-b border-cell-border last:border-b-0 hover:bg-surface-container-low transition-colors"
+              >
+                <div className="col-span-3">
+                  <p className="text-sm font-semibold font-display text-on-surface">{facility.name}</p>
+                  {facility.description && (
+                    <p className="text-xs text-outline truncate mt-0.5">{facility.description}</p>
+                  )}
+                </div>
+                <div className="col-span-2">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium font-mono ${TYPE_COLORS[facility.type] || TYPE_COLORS.OTHER}`}>
+                    {TYPE_LABELS[facility.type] || facility.type}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <StatusBadge status={facility.status} type="facility" />
+                </div>
+                <div className="col-span-2 flex items-center gap-1 text-sm text-on-surface-variant">
+                  <Icon name="location_on" size={14} />
+                  <span className="truncate">{facility.location}</span>
+                </div>
+                <div className="col-span-1 font-mono text-sm text-on-surface-variant">
+                  {facility.capacity}
+                </div>
+                <div className="col-span-2 flex items-center justify-end gap-1">
                   <button
                     onClick={() => openEditForm(facility)}
-                    className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-none transition-colors"
+                    className="p-1.5 text-outline hover:text-primary hover:bg-primary/10 transition-colors"
                     title="Edit"
                   >
-                    <Icon name="edit" size={18} />
+                    <Icon name="edit" size={16} />
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(facility.id)}
-                    className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-none transition-colors"
+                    className="p-1.5 text-outline hover:text-error hover:bg-error/10 transition-colors"
                     title="Delete"
                   >
-                    <Icon name="delete" size={18} />
+                    <Icon name="delete" size={16} />
                   </button>
                 </div>
               </div>
-
-              {/* Badges */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono ${TYPE_COLORS[facility.type] || TYPE_COLORS.OTHER}`}>
-                  {TYPE_LABELS[facility.type] || facility.type}
-                </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono ${STATUS_COLORS[facility.status] || STATUS_COLORS.ACTIVE}`}>
-                  {STATUS_LABELS[facility.status] || facility.status}
-                </span>
-              </div>
-
-              {/* Details */}
-              <div className="space-y-1.5 text-sm text-on-surface-variant mb-3">
-                <div className="flex items-center gap-1.5">
-                  <Icon name="location_on" size={16} className="flex-shrink-0" />
-                  <span>{facility.location}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Icon name="group" size={16} className="flex-shrink-0" />
-                  <span className="font-mono">Capacity: {facility.capacity}</span>
-                </div>
-              </div>
-
-              {/* Description */}
-              {facility.description && (
-                <p className="text-sm text-outline line-clamp-2">
-                  {facility.description}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+        </>
       )}
     </div>
   );

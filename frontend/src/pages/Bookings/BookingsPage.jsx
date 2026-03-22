@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import Icon from '../../components/common/Icon';
+import StatusPipeline from '../../components/common/StatusPipeline';
 
 const STATUS_CONFIG = {
   PENDING:   { label: 'Pending',   bg: 'bg-yellow-500/15', text: 'text-yellow-600' },
@@ -301,6 +302,14 @@ export default function BookingsPage() {
                         Requested by {booking.requestedBy.name || booking.requestedBy.email}
                       </p>
                     )}
+
+                    {/* Booking workflow pipeline */}
+                    <div className="mt-3 pt-3 border-t border-cell-border">
+                      <StatusPipeline
+                        steps={['PENDING', 'APPROVED']}
+                        current={booking.status === 'REJECTED' ? 'PENDING' : booking.status === 'CANCELLED' ? 'PENDING' : booking.status}
+                      />
+                    </div>
                   </div>
 
                   {/* Right: actions */}
