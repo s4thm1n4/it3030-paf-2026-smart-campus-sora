@@ -33,7 +33,7 @@ export default function LoginPage() {
               <Icon name="hub" className="text-on-primary text-xl" />
             </div>
             <span className="font-display text-on-sidebar text-lg tracking-tight font-semibold">
-              CAMPUS_CORE
+              SORA UMS
             </span>
           </div>
 
@@ -42,11 +42,11 @@ export default function LoginPage() {
           <div className="space-y-3">
             <div className="cell-border px-4 py-3">
               <p className="label-caps text-outline text-[10px] mb-1">Designation</p>
-              <p className="font-mono text-on-sidebar text-sm">CAMPUS_CORE_V1</p>
+              <p className="font-mono text-on-sidebar text-sm">SORA_UMS_V1</p>
             </div>
             <div className="cell-border px-4 py-3">
-              <p className="label-caps text-outline text-[10px] mb-1">Node</p>
-              <p className="font-mono text-on-sidebar text-sm">NODE_01</p>
+              <p className="label-caps text-outline text-[10px] mb-1">Platform</p>
+              <p className="font-mono text-on-sidebar text-sm">University Management System</p>
             </div>
             <div className="cell-border px-4 py-3">
               <p className="label-caps text-outline text-[10px] mb-1">Protocol</p>

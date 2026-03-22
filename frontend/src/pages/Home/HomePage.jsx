@@ -115,7 +115,7 @@ export default function HomePage() {
             Welcome back, {user?.name ?? 'User'}
           </h1>
           <p className="mt-0.5 text-sm text-on-surface-variant font-mono">
-            // smart-campus overview &mdash; {dayjs().format('YYYY-MM-DD')}
+            // sora-ums overview &mdash; {dayjs().format('YYYY-MM-DD')}
           </p>
         </div>
         <div className="ml-auto hidden sm:flex items-center gap-2">

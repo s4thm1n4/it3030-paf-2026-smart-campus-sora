@@ -72,10 +72,10 @@ export default function MainLayout() {
           </div>
           <div className="flex flex-col">
             <span className="font-display text-xs font-bold tracking-widest text-sidebar-text-active">
-              NODE_01
+              SORA
             </span>
             <span className="font-mono text-[10px] text-sidebar-text">
-              CAMPUS_CORE
+              UMS_V1
             </span>
           </div>
         </div>
@@ -182,10 +182,10 @@ export default function MainLayout() {
           {/* Title */}
           <div className="hidden lg:flex items-center gap-2">
             <span className="font-display text-sm font-bold tracking-widest text-on-surface">
-              CAMPUS_CORE_V1
+              SORA UMS
             </span>
             <span className="font-mono text-[10px] text-outline">
-              // Smart Campus Operations Hub
+              // University Management System
             </span>
           </div>
 
@@ -256,7 +256,7 @@ export default function MainLayout() {
               LATENCY: 12ms
             </span>
             <span className="font-mono text-[10px] text-outline-variant">
-              v1.0.0-PAF2026
+              SORA-UMS-v1.0.0
             </span>
           </div>
         </footer>
