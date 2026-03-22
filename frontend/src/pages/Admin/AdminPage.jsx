@@ -1,12 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  HiOutlineBuildingOffice2,
-  HiOutlineCalendarDays,
-  HiOutlineWrenchScrewdriver,
-  HiOutlineUsers,
-  HiOutlineCheck,
-  HiOutlineXMark,
-} from 'react-icons/hi2';
+import Icon from '../../components/common/Icon';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import facilityService from '../../services/facilityService';
@@ -94,7 +87,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-none border-4 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -103,51 +96,43 @@ export default function AdminPage() {
     {
       label: 'Total Facilities',
       value: stats.facilities,
-      icon: HiOutlineBuildingOffice2,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
+      icon: 'apartment',
+      containerBg: 'bg-primary-container',
     },
     {
       label: 'All Bookings',
       value: stats.bookings,
-      icon: HiOutlineCalendarDays,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
-      border: 'border-green-200',
+      icon: 'calendar_month',
+      containerBg: 'bg-accent-container',
     },
     {
       label: 'All Tickets',
       value: stats.tickets,
-      icon: HiOutlineWrenchScrewdriver,
-      color: 'text-orange-600',
-      bg: 'bg-orange-50',
-      border: 'border-orange-200',
+      icon: 'build',
+      containerBg: 'bg-primary-container',
     },
     {
       label: 'Pending Approvals',
       value: pendingBookings.length,
-      icon: HiOutlineCalendarDays,
-      color: 'text-red-600',
-      bg: 'bg-red-50',
-      border: 'border-red-200',
+      icon: 'calendar_month',
+      containerBg: 'bg-accent-container',
     },
   ];
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+      <h1 className="font-display text-2xl font-bold text-on-surface">Admin Dashboard</h1>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+      <div className="flex gap-6 border-b border-outline">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+            className={`pb-2 text-sm font-medium transition border-b-2 -mb-px ${
               activeTab === tab.key
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-gray-600 hover:bg-gray-200'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
             }`}
           >
             {tab.label}
@@ -158,18 +143,21 @@ export default function AdminPage() {
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          <p className="label-caps text-on-surface-variant">Statistics</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {overviewCards.map((card) => (
               <div
                 key={card.label}
-                className={`rounded-xl border ${card.border} ${card.bg} p-5 shadow-sm`}
+                className="border border-cell-border bg-surface p-5"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">{card.label}</p>
-                    <p className={`mt-1 text-3xl font-bold ${card.color}`}>{card.value}</p>
+                    <p className="text-sm font-medium text-on-surface-variant">{card.label}</p>
+                    <p className="mt-1 font-display text-3xl font-bold text-on-surface">{card.value}</p>
                   </div>
-                  <card.icon className={`h-10 w-10 ${card.color} opacity-70`} />
+                  <div className={`flex h-10 w-10 items-center justify-center ${card.containerBg}`}>
+                    <Icon name={card.icon} size={24} className="text-on-surface" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -180,39 +168,42 @@ export default function AdminPage() {
       {/* Pending Approvals Tab */}
       {activeTab === 'approvals' && (
         <div className="space-y-4">
+          <p className="label-caps text-on-surface-variant">Pending Reviews</p>
           {pendingBookings.length === 0 ? (
-            <p className="rounded-lg bg-gray-50 p-8 text-center text-gray-400">
+            <p className="border border-cell-border bg-surface-container-lowest p-8 text-center text-on-surface-variant">
               No pending bookings to review.
             </p>
           ) : (
             pendingBookings.map((booking) => (
               <div
                 key={booking.id}
-                className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                className="border border-cell-border bg-surface p-5"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
-                    <p className="font-semibold text-gray-800">
+                    <p className="font-display font-semibold text-on-surface">
                       {booking.userName || booking.userEmail || 'Unknown User'}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Facility:</span>{' '}
+                    <p className="text-sm text-on-surface-variant">
+                      <span className="font-medium text-on-surface">Facility:</span>{' '}
                       {booking.facilityName || booking.facilityId}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium">Date:</span>{' '}
-                      {booking.date
-                        ? dayjs(booking.date).format('MMM D, YYYY')
-                        : booking.startTime
-                          ? dayjs(booking.startTime).format('MMM D, YYYY h:mm A')
-                          : 'N/A'}
-                      {booking.endTime && (
-                        <> &mdash; {dayjs(booking.endTime).format('h:mm A')}</>
-                      )}
+                    <p className="text-sm text-on-surface-variant">
+                      <span className="font-medium text-on-surface">Date:</span>{' '}
+                      <span className="font-mono">
+                        {booking.date
+                          ? dayjs(booking.date).format('MMM D, YYYY')
+                          : booking.startTime
+                            ? dayjs(booking.startTime).format('MMM D, YYYY h:mm A')
+                            : 'N/A'}
+                        {booking.endTime && (
+                          <> &mdash; {dayjs(booking.endTime).format('h:mm A')}</>
+                        )}
+                      </span>
                     </p>
                     {booking.purpose && (
-                      <p className="text-sm text-gray-500">
-                        <span className="font-medium">Purpose:</span> {booking.purpose}
+                      <p className="text-sm text-on-surface-variant">
+                        <span className="font-medium text-on-surface">Purpose:</span> {booking.purpose}
                       </p>
                     )}
                   </div>
@@ -225,23 +216,23 @@ export default function AdminPage() {
                       onChange={(e) =>
                         setRemarks((prev) => ({ ...prev, [booking.id]: e.target.value }))
                       }
-                      className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:outline-none sm:w-56"
+                      className="w-full border border-cell-border bg-surface-container-lowest px-3 py-1.5 text-sm text-on-surface placeholder:text-outline focus:border-primary focus:outline-none sm:w-56"
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleApprove(booking.id)}
                         disabled={actionLoading === booking.id}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-green-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 bg-success px-4 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
                       >
-                        <HiOutlineCheck className="h-4 w-4" />
+                        <Icon name="check" size={16} className="text-white" />
                         Approve
                       </button>
                       <button
                         onClick={() => handleReject(booking.id)}
                         disabled={actionLoading === booking.id}
-                        className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 bg-error px-4 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
                       >
-                        <HiOutlineXMark className="h-4 w-4" />
+                        <Icon name="close" size={16} className="text-white" />
                         Reject
                       </button>
                     </div>
@@ -255,10 +246,10 @@ export default function AdminPage() {
 
       {/* User Management Tab */}
       {activeTab === 'users' && (
-        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-          <HiOutlineUsers className="mx-auto h-12 w-12 text-gray-300" />
-          <h3 className="mt-3 text-lg font-medium text-gray-700">User Management</h3>
-          <p className="mt-1 text-sm text-gray-400">
+        <div className="border border-cell-border bg-surface p-8 text-center">
+          <Icon name="group" size={48} className="mx-auto text-outline" />
+          <h3 className="mt-3 font-display text-lg font-medium text-on-surface">User Management</h3>
+          <p className="mt-1 text-sm text-on-surface-variant">
             User management coming soon. This feature is under development.
           </p>
         </div>
