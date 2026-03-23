@@ -34,9 +34,23 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const url = (error.config?.url || '').toString();
+      const isGoogleLoginPost = url.includes('/auth/google');
+
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      try {
+        window.dispatchEvent(new CustomEvent('auth:session-invalid'));
+      } catch {
+        /* ignore */
+      }
+
+      // Don't hard-redirect when already on login (avoids a confusing reload loop).
+      // Don't redirect on failed Google token exchange — user is already on login.
+      const onLoginPage = window.location.pathname === '/login';
+      if (!isGoogleLoginPost && !onLoginPage) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

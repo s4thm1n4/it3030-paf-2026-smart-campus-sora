@@ -10,12 +10,17 @@ import com.smartcampus.smart_campus_api.dto.UserProfileResponse;
 import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.security.JwtUtil;
 import com.smartcampus.smart_campus_api.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * MODULE E — Authentication & Authorization
@@ -30,6 +35,8 @@ import java.util.Collections;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final UserService userService;
     private final JwtUtil jwtUtil;
@@ -48,7 +55,15 @@ public class AuthController {
      * verifies it with Google, finds or creates the user, and returns a JWT.
      */
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleLoginRequest request) {
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
+        // Quick runtime sanity check: ensure the Google client ID was configured.
+        if (googleClientId == null || googleClientId.isBlank() || googleClientId.contains("YOUR_GOOGLE_CLIENT_ID")) {
+            log.error("Google client ID is not configured properly: '{}'", googleClientId);
+            return ResponseEntity.status(500).body(authError(
+                    "Server misconfiguration: spring.security.oauth2.client.registration.google.client-id is not set. " +
+                    "Please set it to the same value as the frontend VITE_GOOGLE_CLIENT_ID (see README / .env)."));
+        }
+
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     new NetHttpTransport(), GsonFactory.getDefaultInstance())
@@ -57,7 +72,8 @@ public class AuthController {
 
             GoogleIdToken idToken = verifier.verify(request.credential());
             if (idToken == null) {
-                return ResponseEntity.status(401).build();
+                return ResponseEntity.status(401).body(authError(
+                        "Google could not verify the sign-in token. Check that spring.security.oauth2.client.registration.google.client-id matches your frontend VITE_GOOGLE_CLIENT_ID."));
             }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
@@ -79,8 +95,20 @@ public class AuthController {
             ));
 
         } catch (Exception e) {
-            return ResponseEntity.status(401).build();
+            log.warn("Google login failed: {}", e.getMessage());
+            log.debug("Google login stack trace", e);
+            return ResponseEntity.status(401).body(authError(
+                    "Google sign-in could not be completed. Check: (1) Google Client ID matches frontend and backend, (2) PostgreSQL is running, (3) see server logs."));
         }
+    }
+
+    private static Map<String, Object> authError(String message) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", 401);
+        body.put("error", "Unauthorized");
+        body.put("message", message);
+        return body;
     }
 
     /**

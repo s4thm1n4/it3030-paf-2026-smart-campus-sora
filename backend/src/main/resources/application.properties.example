@@ -36,6 +36,9 @@ server.port=8080
 
 # ── App Custom Config ──
 app.cors.allowed-origins=http://localhost:5173
+# Any non-empty string works — the app hashes it with SHA-256 for HS256 signing.
 app.jwt.secret=CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_STRING
 app.jwt.expiration-ms=86400000
 
+# Ticket image storage (MODULE C) — files under {dir}/tickets/
+app.upload.dir=uploads
