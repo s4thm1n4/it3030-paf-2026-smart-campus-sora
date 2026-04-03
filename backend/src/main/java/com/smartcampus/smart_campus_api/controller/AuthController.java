@@ -79,6 +79,7 @@ public class AuthController {
             ));
 
         } catch (Exception e) {
+            System.err.println("Google OAuth verification failed: " + e.getMessage());
             return ResponseEntity.status(401).build();
         }
     }
