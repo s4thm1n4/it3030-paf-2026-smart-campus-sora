@@ -112,7 +112,7 @@ export default function HomePage() {
         )}
         <div>
           <h1 className="font-display text-2xl font-bold text-on-surface">
-            Welcome back, {user?.name ?? 'User'}
+            Welcome back, {user?.name?.split(' ')[0] ?? 'User'}
           </h1>
           <p className="mt-0.5 text-sm text-on-surface-variant font-mono">
             // sora-ums overview &mdash; {dayjs().format('YYYY-MM-DD')}
