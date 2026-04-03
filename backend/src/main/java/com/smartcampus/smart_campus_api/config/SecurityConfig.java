@@ -16,7 +16,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
  * - Stateless JWT sessions
  * - CORS enabled
  * - Google OAuth2 login → JWT issued by AuthController
- * - Role-based access: USER, ADMIN
+ * - Role-based access: USER, ADMIN, TECHNICIAN
  *
  * @author Member 4 (M4)
  */
