@@ -79,7 +79,7 @@ export default function LoginPage() {
               </h1>
             </div>
             <p className="text-outline text-sm mt-1">
-              Authenticate via Google to access the Operations Hub.
+              Authenticate via Google to access SORA UMS.
             </p>
           </div>
 
