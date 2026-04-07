@@ -1,5 +1,6 @@
 package com.smartcampus.smart_campus_api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -51,13 +52,15 @@ public class Ticket {
     @Builder.Default
     private TicketStatus status = TicketStatus.OPEN;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User createdBy;
 
     /** The technician assigned to resolve this ticket */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assigned_to")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User assignedTo;
 
     /** Contact phone for on-site coordination */
@@ -78,6 +81,7 @@ public class Ticket {
     private String resolutionNotes;
 
     @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties({"ticket"})
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();
 

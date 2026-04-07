@@ -9,16 +9,26 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Restore user from localStorage on mount
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Wrapped in try/catch to handle any corrupted stored data
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+      }
+    } catch (e) {
+      // Bad data in localStorage — clear it and start fresh
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (googleCredential) => {
     const response = await authService.googleLogin(googleCredential);
-    const { token, user: userData } = response.data;
+    const { token, id, name, email, role, profilePictureUrl } = response.data;
+    const userData = { id, name, email, role, profilePictureUrl };
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
@@ -32,9 +42,10 @@ export function AuthProvider({ children }) {
 
   const isAdmin = () => user?.role === 'ADMIN';
   const isTechnician = () => user?.role === 'TECHNICIAN';
+  const isManager = () => user?.role === 'MANAGER';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isTechnician }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAdmin, isTechnician, isManager }}>
       {children}
     </AuthContext.Provider>
   );

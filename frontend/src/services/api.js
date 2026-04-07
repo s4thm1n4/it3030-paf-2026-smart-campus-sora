@@ -1,13 +1,15 @@
 import axios from 'axios';
 
 /**
- * Shared Axios instance.
+ * Shared Axios instance for SORA UMS API.
  * - baseURL is proxied to localhost:8080 via Vite config
  * - Automatically attaches JWT token from localStorage
  * - Handles 401 responses (redirect to login)
+ * - Timeout set to 15s to avoid hanging requests
  */
 const api = axios.create({
   baseURL: '/api',
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,9 +18,13 @@ const api = axios.create({
 // ── Request interceptor: attach token ──
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      // localStorage not available — skip
     }
     return config;
   },

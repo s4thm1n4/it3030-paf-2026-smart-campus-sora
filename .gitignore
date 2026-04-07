@@ -44,3 +44,13 @@ desktop.ini
 # ── Uploads (dev only — don't commit user files) ──
 backend/uploads/*
 !backend/uploads/.gitkeep
+# ── AI Assistant session files ──
+.claude/
+
+# ── Backend secrets (never commit real credentials) ──
+backend/src/main/resources/application.properties
+
+# ── Frontend environment secrets ──
+frontend/.env
+frontend/.env.local
+
