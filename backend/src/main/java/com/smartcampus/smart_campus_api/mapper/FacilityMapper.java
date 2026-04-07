@@ -18,6 +18,8 @@ public class FacilityMapper {
                 .type(facility.getType())
                 .capacity(facility.getCapacity())
                 .location(facility.getLocation())
+                .availableFrom(facility.getAvailableFrom())
+                .availableTo(facility.getAvailableTo())
                 .status(facility.getStatus())
                 .build();
     }
@@ -33,6 +35,8 @@ public class FacilityMapper {
                 .type(facilityDTO.getType())
                 .capacity(facilityDTO.getCapacity())
                 .location(facilityDTO.getLocation())
+                .availableFrom(facilityDTO.getAvailableFrom())
+                .availableTo(facilityDTO.getAvailableTo())
                 .status(facilityDTO.getStatus())
                 .build();
     }

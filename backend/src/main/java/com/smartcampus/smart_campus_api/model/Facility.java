@@ -14,6 +14,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalTime;
+
 @Entity
 @Table(name = "facilities")
 @Getter
@@ -39,6 +41,12 @@ public class Facility {
 
     @Column
     private String location;
+
+    @Column(name = "available_from")
+    private LocalTime availableFrom;
+
+    @Column(name = "available_to")
+    private LocalTime availableTo;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

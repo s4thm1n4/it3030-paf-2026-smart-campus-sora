@@ -2,6 +2,7 @@ package com.smartcampus.smart_campus_api.dto;
 
 import com.smartcampus.smart_campus_api.model.FacilityStatus;
 import com.smartcampus.smart_campus_api.model.FacilityType;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -10,6 +11,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -30,6 +33,12 @@ public class FacilityDTO {
     private Integer capacity;
 
     private String location;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime availableFrom;
+
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime availableTo;
 
     @NotNull(message = "Status is required")
     private FacilityStatus status;
