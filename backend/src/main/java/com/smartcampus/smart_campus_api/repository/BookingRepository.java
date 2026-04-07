@@ -32,4 +32,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         @Param("startTime") LocalTime startTime,
         @Param("endTime") LocalTime endTime
     );
+
+    /** Check for overlapping bookings excluding a specific booking (used for update) */
+    @Query("SELECT b FROM Booking b WHERE b.facility.id = :facilityId " +
+           "AND b.bookingDate = :date " +
+           "AND b.status IN ('PENDING', 'APPROVED') " +
+           "AND b.startTime < :endTime " +
+           "AND b.endTime > :startTime " +
+           "AND b.id <> :excludeId")
+    List<Booking> findConflictingBookingsExcluding(
+        @Param("facilityId") Long facilityId,
+        @Param("date") LocalDate date,
+        @Param("startTime") LocalTime startTime,
+        @Param("endTime") LocalTime endTime,
+        @Param("excludeId") Long excludeId
+    );
 }
