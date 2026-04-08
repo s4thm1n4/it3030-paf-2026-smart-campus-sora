@@ -1,147 +1,149 @@
 package com.smartcampus.smart_campus_api.controller;
 
-import com.smartcampus.smart_campus_api.dto.*;
+import com.smartcampus.smart_campus_api.dto.AssignTicketRequest;
+import com.smartcampus.smart_campus_api.dto.CommentRequest;
+import com.smartcampus.smart_campus_api.dto.CreateTicketRequest;
+import com.smartcampus.smart_campus_api.dto.UpdateStatusRequest;
+import com.smartcampus.smart_campus_api.model.Comment;
+import com.smartcampus.smart_campus_api.model.Ticket;
 import com.smartcampus.smart_campus_api.model.User;
+import com.smartcampus.smart_campus_api.service.CommentService;
 import com.smartcampus.smart_campus_api.service.TicketService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * MODULE C — Ticket REST API
+ *
+ * Endpoints:
+ *   GET    /api/tickets                              — list all tickets
+ *   GET    /api/tickets/{id}                         — get ticket by id
+ *   GET    /api/tickets/my                           — get current user's tickets
+ *   POST   /api/tickets                              — create a ticket
+ *   PUT    /api/tickets/{id}                         — update a ticket
+ *   DELETE /api/tickets/{id}                         — delete a ticket
+ *   PATCH  /api/tickets/{id}/status                  — update ticket status
+ *   PATCH  /api/tickets/{id}/assign                  — assign ticket to technician
+ *   GET    /api/tickets/{id}/comments                — get comments for a ticket
+ *   POST   /api/tickets/{id}/comments                — add comment to a ticket
+ *   PUT    /api/tickets/{id}/comments/{commentId}    — update a comment
+ *   DELETE /api/tickets/{id}/comments/{commentId}    — delete a comment
+ *
+ * @author Member 3 (M3)
+ */
 @RestController
 @RequestMapping("/api/tickets")
 public class TicketController {
 
     private final TicketService ticketService;
+    private final CommentService commentService;
 
-    public TicketController(TicketService ticketService) {
+    public TicketController(TicketService ticketService, CommentService commentService) {
         this.ticketService = ticketService;
+        this.commentService = commentService;
     }
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> create(
-            @Valid @ModelAttribute TicketCreateRequest request,
-            @RequestParam(value = "images", required = false) MultipartFile[] images,
-            @AuthenticationPrincipal User user
-    ) {
-        // If the user is not authenticated, return a clear 401 response instead of letting
-        // a downstream DB constraint (created_by NOT NULL) cause a 500.
-        if (user == null) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("timestamp", LocalDateTime.now());
-            body.put("status", HttpStatus.UNAUTHORIZED.value());
-            body.put("error", HttpStatus.UNAUTHORIZED.getReasonPhrase());
-            body.put("message", "Authentication required: please sign in before submitting a ticket.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
-        }
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(ticketService.create(request, images, user));
+    /** GET /api/tickets — list all tickets */
+    @GetMapping
+    public ResponseEntity<List<Ticket>> getAll() {
+        return ResponseEntity.ok(ticketService.getAll());
     }
 
+    /** GET /api/tickets/my — get current user's tickets */
     @GetMapping("/my")
-    public List<TicketResponse> listMine(@AuthenticationPrincipal User user) {
-        return ticketService.listMine(user);
+    public ResponseEntity<List<Ticket>> getMyTickets(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ticketService.getMyTickets(user));
     }
 
-    /** Full queue for operations staff */
-    @GetMapping("/all")
-    @PreAuthorize("hasAnyRole('ADMIN','TECHNICIAN','MANAGER')")
-    public List<TicketResponse> listAll() {
-        return ticketService.listAllForStaff();
+    /** GET /api/tickets/{id} — get ticket by id */
+    @GetMapping("/{id}")
+    public ResponseEntity<Ticket> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ticketService.getById(id));
     }
 
-    /** Tickets assigned to the current technician */
-    @GetMapping("/assigned")
-    @PreAuthorize("hasRole('TECHNICIAN')")
-    public List<TicketResponse> listAssigned(@AuthenticationPrincipal User user) {
-        return ticketService.listAssigned(user);
+    /** POST /api/tickets — create a new ticket */
+    @PostMapping
+    public ResponseEntity<Ticket> create(
+            @Valid @RequestBody CreateTicketRequest request,
+            @AuthenticationPrincipal User user) {
+        Ticket ticket = ticketService.create(request, user);
+        return ResponseEntity.status(201).body(ticket);
     }
 
-    @GetMapping("/technicians")
-    @PreAuthorize("hasRole('ADMIN')")
-    public List<UserSummary> listTechnicians() {
-        return ticketService.listTechnicians();
-    }
-
-    @GetMapping("/{id:\\d+}")
-    public TicketResponse getById(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        return ticketService.getById(id, user);
-    }
-
-    @PutMapping("/{id:\\d+}")
-    public TicketResponse update(
+    /** PUT /api/tickets/{id} — update a ticket */
+    @PutMapping("/{id}")
+    public ResponseEntity<Ticket> update(
             @PathVariable Long id,
-            @Valid @RequestBody TicketUpdateRequest request,
-            @AuthenticationPrincipal User user
-    ) {
-        return ticketService.update(id, request, user);
+            @Valid @RequestBody CreateTicketRequest request,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ticketService.update(id, request, user));
     }
 
-    @PatchMapping("/{id:\\d+}/status")
-    public TicketResponse patchStatus(
+    /** DELETE /api/tickets/{id} — delete a ticket */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(
             @PathVariable Long id,
-            @Valid @RequestBody TicketStatusPatchRequest request,
-            @AuthenticationPrincipal User user
-    ) {
-        return ticketService.patchStatus(id, request, user);
-    }
-
-    @PatchMapping("/{id}/assign")
-    @PreAuthorize("hasRole('ADMIN')")
-    public TicketResponse assign(
-            @PathVariable Long id,
-            @Valid @RequestBody AssignTicketRequest request,
-            @AuthenticationPrincipal User user
-    ) {
-        return ticketService.assign(id, request, user);
-    }
-
-    @DeleteMapping("/{id:\\d+}")
-    public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal User user) {
+            @AuthenticationPrincipal User user) {
         ticketService.delete(id, user);
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/comments")
-    public List<CommentResponse> listComments(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        return ticketService.listComments(id, user);
+    /** PATCH /api/tickets/{id}/status — update ticket status */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Ticket> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateStatusRequest request) {
+        return ResponseEntity.ok(ticketService.updateStatus(id, request.status()));
     }
 
-    @PostMapping("/{id:\\d+}/comments")
-    public ResponseEntity<CommentResponse> addComment(
+    /** PATCH /api/tickets/{id}/assign — assign ticket to technician */
+    @PatchMapping("/{id}/assign")
+    public ResponseEntity<Ticket> assign(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignTicketRequest request) {
+        return ResponseEntity.ok(ticketService.assign(id, request.technicianId()));
+    }
+
+    // ── Comment endpoints ──
+
+    /** GET /api/tickets/{id}/comments — get comments for a ticket */
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<Comment>> getComments(@PathVariable Long id) {
+        return ResponseEntity.ok(commentService.getComments(id));
+    }
+
+    /** POST /api/tickets/{id}/comments — add a comment */
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<Comment> addComment(
             @PathVariable Long id,
             @Valid @RequestBody CommentRequest request,
-            @AuthenticationPrincipal User user
-    ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ticketService.addComment(id, request, user));
+            @AuthenticationPrincipal User user) {
+        Comment comment = commentService.addComment(id, request.content(), user);
+        return ResponseEntity.status(201).body(comment);
     }
 
-    @PutMapping("/{id:\\d+}/comments/{commentId:\\d+}")
-    public CommentResponse updateComment(
+    /** PUT /api/tickets/{id}/comments/{commentId} — update a comment */
+    @PutMapping("/{id}/comments/{commentId}")
+    public ResponseEntity<Comment> updateComment(
             @PathVariable Long id,
             @PathVariable Long commentId,
             @Valid @RequestBody CommentRequest request,
-            @AuthenticationPrincipal User user
-    ) {
-        return ticketService.updateComment(id, commentId, request, user);
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(commentService.updateComment(id, commentId, request.content(), user));
     }
 
-    @DeleteMapping("/{id:\\d+}/comments/{commentId:\\d+}")
+    /** DELETE /api/tickets/{id}/comments/{commentId} — delete a comment */
+    @DeleteMapping("/{id}/comments/{commentId}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Long id,
             @PathVariable Long commentId,
-            @AuthenticationPrincipal User user
-    ) {
-        ticketService.deleteComment(id, commentId, user);
+            @AuthenticationPrincipal User user) {
+        commentService.deleteComment(id, commentId, user);
         return ResponseEntity.noContent().build();
     }
 }
