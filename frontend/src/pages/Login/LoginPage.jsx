@@ -1,108 +1,171 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { getApiErrorMessage } from '../../utils/apiError';
-
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+import Icon from '../../components/common/Icon';
 
 export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
 
-  /** After Google sign-in, send users to Tickets by default (or back to the page they tried to open). */
-  const fromPath = location.state?.from?.pathname;
-  const destination =
-    fromPath && fromPath !== '/login' ? fromPath : '/tickets';
-
-  // Already signed in — leave the login screen (stops the "sign in again" loop feeling).
   useEffect(() => {
     if (!loading && user) {
-      navigate(destination, { replace: true });
+      navigate('/', { replace: true });
     }
-  }, [loading, user, navigate, destination]);
+  }, [user, loading, navigate]);
 
   const handleSuccess = async (credentialResponse) => {
+    setLoginError('');
+    setLoggingIn(true);
     try {
+      console.log('[Login] Google credential received');
       const userData = await login(credentialResponse.credential);
+      console.log('[Login] Success:', userData);
       toast.success(`Welcome, ${userData.name}!`);
-      navigate(destination, { replace: true });
+      // Use replace to prevent back-button returning to login
+      navigate('/', { replace: true });
+      // Fallback: if React navigate doesn't trigger (race condition), force it
+      setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          window.location.href = '/';
+        }
+      }, 500);
     } catch (err) {
-      toast.error(getApiErrorMessage(err) || 'Login failed. Please try again.');
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      const msg = data?.message || data?.error || JSON.stringify(data) || err?.message || 'Unknown error';
+      console.error('[Login] Failed - status:', status, 'data:', data);
+      setLoginError(`Error ${status ?? 'network'}: ${msg}`);
+      toast.error(String(msg));
+      setLoggingIn(false);
     }
   };
 
   const handleError = () => {
+    setLoginError('Google sign-in was cancelled or failed.');
     toast.error('Google sign-in was cancelled or failed.');
   };
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 px-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
-        <div className="mb-6">
-          <span className="text-5xl">🏫</span>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Smart Campus</h2>
-        <p className="text-gray-500 mb-6">Sign in to access the Operations Hub</p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
-        {!GOOGLE_CLIENT_ID && (
-          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
-            <p className="font-semibold">Missing VITE_GOOGLE_CLIENT_ID</p>
-            <p className="mt-1 text-amber-800">
-              Create <code className="rounded bg-amber-100 px-1">frontend/.env</code> from{' '}
-              <code className="rounded bg-amber-100 px-1">.env.example</code>, set your Web client ID,
-              then restart <code className="rounded bg-amber-100 px-1">npm run dev</code>.
+
+  return (
+    <div className="flex min-h-screen">
+      {/* ── Left Panel: Brand / Info ── */}
+      <div className="hidden lg:flex lg:w-[420px] bg-sidebar flex-col justify-between p-10 select-none">
+        {/* Top brand block */}
+        <div>
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 bg-primary flex items-center justify-center">
+              <Icon name="hub" className="text-on-primary text-xl" />
+            </div>
+            <span className="font-display text-on-sidebar text-lg tracking-tight font-semibold">
+              SORA UMS
+            </span>
+          </div>
+
+          <p className="label-caps text-outline text-[11px] mb-4">System Identity</p>
+
+          <div className="space-y-3">
+            <div className="cell-border px-4 py-3">
+              <p className="label-caps text-outline text-[10px] mb-1">Designation</p>
+              <p className="font-mono text-on-sidebar text-sm">SORA_UMS_V1</p>
+            </div>
+            <div className="cell-border px-4 py-3">
+              <p className="label-caps text-outline text-[10px] mb-1">Platform</p>
+              <p className="font-mono text-on-sidebar text-sm">University Management System</p>
+            </div>
+            <div className="cell-border px-4 py-3">
+              <p className="label-caps text-outline text-[10px] mb-1">Protocol</p>
+              <p className="font-mono text-on-sidebar text-sm">OAuth 2.0 / OpenID</p>
+            </div>
+          </div>
+
+          <div className="mt-10 flex items-center gap-2 text-outline">
+            <Icon name="lock" className="text-base" />
+            <span className="font-mono text-[11px]">TLS 1.3 ENCRYPTED</span>
+          </div>
+        </div>
+
+        {/* Bottom status bar */}
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="font-mono text-outline text-[11px]">SYSTEM ONLINE</span>
+        </div>
+      </div>
+
+      {/* ── Right Panel: Login ── */}
+      <div className="flex-1 bg-surface flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          {/* Heading */}
+          <div className="mb-10">
+            <div className="flex items-center gap-2 mb-1">
+              <Icon name="passkey" className="text-primary text-2xl" />
+              <h1 className="font-display text-on-surface text-2xl font-semibold tracking-tight">
+                Sign In
+              </h1>
+            </div>
+            <p className="text-outline text-sm mt-1">
+              Authenticate via Google to access SORA UMS.
             </p>
           </div>
-        )}
 
-        <div className="flex justify-center">
-          {GOOGLE_CLIENT_ID ? (
-            <GoogleLogin
-              onSuccess={handleSuccess}
-              onError={handleError}
-              useOneTap={false}
-              shape="rectangular"
-              size="large"
-              text="signin_with"
-              theme="outline"
-            />
-          ) : (
-            <p className="text-sm text-gray-500">Configure Google client ID to enable sign-in.</p>
-          )}
+          {/* Auth card */}
+          <div className="cell-border bg-surface-container p-6">
+            <p className="label-caps text-outline text-[10px] mb-5">Authentication</p>
+
+            {/* Visible error message */}
+            {loginError && (
+              <div className="mb-4 p-3 border border-red-400 bg-red-50 text-red-700 text-xs font-mono rounded break-all">
+                ⚠ {loginError}
+              </div>
+            )}
+
+            {loggingIn ? (
+              <div className="flex flex-col items-center gap-2 py-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                <span className="text-xs text-outline font-mono">Signing in...</span>
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleSuccess}
+                  onError={handleError}
+                  useOneTap={false}
+                  shape="rectangular"
+                  size="large"
+                  text="signin_with"
+                  theme="outline"
+                />
+              </div>
+            )}
+
+            <div className="mt-5 flex items-center gap-2 justify-center text-outline">
+              <Icon name="shield" className="text-sm" />
+              <span className="font-mono text-[10px]">GOOGLE IDENTITY PROVIDER</span>
+            </div>
+          </div>
+
+          {/* Info row */}
+          <div className="mt-6 flex items-start gap-3 text-outline">
+            <Icon name="info" className="text-base mt-0.5 shrink-0" />
+            <p className="font-mono text-[11px] leading-relaxed">
+              Only authorized university accounts are permitted. Credentials are never stored on this server.
+            </p>
+          </div>
         </div>
 
-        <details className="mt-8 text-left text-sm text-gray-600 border-t border-gray-100 pt-6">
-          <summary className="cursor-pointer font-medium text-gray-800 hover:text-blue-700">
-            “Access blocked” or Google authorization error?
-          </summary>
-          <ol className="mt-3 list-decimal list-inside space-y-2 text-xs leading-relaxed text-gray-600">
-            <li>
-              Open{' '}
-              <span className="font-medium text-gray-800">Google Cloud Console</span> → APIs &amp;
-              Services → Credentials → your OAuth 2.0 Client ID (type Web application).
-            </li>
-            <li>
-              Under <span className="font-medium text-gray-800">Authorized JavaScript origins</span>,
-              add the exact URL you use in the address bar, including port, e.g.{' '}
-              <code className="rounded bg-gray-100 px-1">http://localhost:5173</code> and{' '}
-              <code className="rounded bg-gray-100 px-1">http://127.0.0.1:5173</code> (both if you
-              switch between them).
-            </li>
-            <li>
-              OAuth consent screen → if the app is in <span className="font-medium">Testing</span>,
-              add your Google account under <span className="font-medium">Test users</span>.
-            </li>
-            <li>
-              Backend <code className="rounded bg-gray-100 px-1">client-id</code> must match this same
-              Web client ID (no typo, no extra spaces).
-            </li>
-          </ol>
-        </details>
-
-        <p className="mt-6 text-xs text-gray-400">
+        {/* Footer */}
+        <p className="absolute bottom-6 font-mono text-[11px] text-outline">
           Secured with OAuth 2.0 — IT3030 PAF 2026 · Group SORA
         </p>
       </div>

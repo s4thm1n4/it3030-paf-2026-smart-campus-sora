@@ -1,16 +1,21 @@
 import axios from 'axios';
 
 /**
- * Shared Axios instance.
+ * Shared Axios instance for SORA UMS API.
  * - baseURL is proxied to localhost:8080 via Vite config
  * - Automatically attaches JWT token from localStorage
  * - Handles 401 responses (redirect to login)
+ * - Timeout set to 15s to avoid hanging requests
  */
 const api = axios.create({
   baseURL: '/api',
+  timeout: 15000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-// ── Request interceptor: attach token + Content-Type ──
+// ── Request interceptor: attach token ──
 api.interceptors.request.use(
   (config) => {
     try {
@@ -21,38 +26,22 @@ api.interceptors.request.use(
     } catch (e) {
       // localStorage not available — skip
     }
-    // For FormData let the browser set Content-Type with the correct multipart boundary.
-    // For everything else default to JSON.
-    if (!(config.data instanceof FormData)) {
-      config.headers['Content-Type'] = 'application/json';
-    }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
 // ── Response interceptor: handle auth errors ──
+// NOTE: We do NOT hard-redirect on 401. The React auth context + ProtectedRoute
+// handle redirecting to /login. A hard window.location.href would wipe React
+// state mid-render and cause a login loop after sign-in.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      const url = (error.config?.url || '').toString();
-      const isGoogleLoginPost = url.includes('/auth/google');
-
+      // Only clear stored credentials — React's ProtectedRoute will handle the redirect
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      try {
-        window.dispatchEvent(new CustomEvent('auth:session-invalid'));
-      } catch {
-        /* ignore */
-      }
-
-      // Don't hard-redirect when already on login (avoids a confusing reload loop).
-      // Don't redirect on failed Google token exchange — user is already on login.
-      const onLoginPage = window.location.pathname === '/login';
-      if (!isGoogleLoginPost && !onLoginPage) {
-        window.location.href = '/login';
-      }
     }
     return Promise.reject(error);
   }

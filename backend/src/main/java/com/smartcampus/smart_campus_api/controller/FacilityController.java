@@ -1,31 +1,51 @@
 package com.smartcampus.smart_campus_api.controller;
 
-import com.smartcampus.smart_campus_api.dto.FacilitySummary;
-import com.smartcampus.smart_campus_api.model.FacilityStatus;
-import com.smartcampus.smart_campus_api.repository.FacilityRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.smartcampus.smart_campus_api.model.Facility;
+import com.smartcampus.smart_campus_api.model.FacilityType;
+import com.smartcampus.smart_campus_api.service.FacilityService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-/**
- * Read-only catalogue for linking tickets to campus facilities.
- */
 @RestController
 @RequestMapping("/api/facilities")
+@RequiredArgsConstructor
 public class FacilityController {
-
-    private final FacilityRepository facilityRepository;
-
-    public FacilityController(FacilityRepository facilityRepository) {
-        this.facilityRepository = facilityRepository;
-    }
+    private final FacilityService facilityService;
 
     @GetMapping
-    public List<FacilitySummary> listActive() {
-        return facilityRepository.findByStatus(FacilityStatus.ACTIVE).stream()
-                .map(f -> new FacilitySummary(f.getId(), f.getName(), f.getLocation()))
-                .toList();
+    public ResponseEntity<List<Facility>> getAll() {
+        return ResponseEntity.ok(facilityService.getAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Facility> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(facilityService.getById(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<Facility> create(@RequestBody Facility facility) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(facilityService.create(facility));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Facility> update(@PathVariable Long id, @RequestBody Facility facility) {
+        return ResponseEntity.ok(facilityService.update(id, facility));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        facilityService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Facility>> search(
+            @RequestParam(required = false) FacilityType type,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) Integer minCapacity) {
+        return ResponseEntity.ok(facilityService.search(type, location, minCapacity));
     }
 }

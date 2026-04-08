@@ -1,1 +1,156 @@
 @import "tailwindcss";
+
+@theme {
+  /* ── PRIMARY (Blue) ── */
+  --color-primary: #004dea;
+  --color-primary-dim: #0043ce;
+  --color-primary-container: #dbe1ff;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #001551;
+
+  /* ── ACCENT (Orange) ── */
+  --color-accent: #e8650a;
+  --color-accent-dim: #cf5a08;
+  --color-accent-container: #ffdcc8;
+  --color-on-accent: #ffffff;
+  --color-on-accent-container: #321200;
+
+  /* ── SURFACE HIERARCHY ── */
+  --color-surface: #f8f9fb;
+  --color-surface-container: #eef0f4;
+  --color-surface-container-low: #f3f4f7;
+  --color-surface-container-high: #e8eaee;
+  --color-surface-container-highest: #e2e4e8;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #191c20;
+  --color-on-surface-variant: #44474e;
+  --color-surface-bright: #f8f9fb;
+
+  /* ── ERROR ── */
+  --color-error: #9e3f4e;
+  --color-error-container: #ffdadb;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #400014;
+
+  /* ── SUCCESS ── */
+  --color-success: #1a7a3a;
+  --color-success-container: #d4f5dc;
+  --color-on-success: #ffffff;
+
+  /* ── WARNING ── */
+  --color-warning: #e8a817;
+  --color-warning-container: #fff0c7;
+  --color-on-warning: #1f1b00;
+
+  /* ── OUTLINE ── */
+  --color-outline: #717c82;
+  --color-outline-variant: #a9b4b9;
+
+  /* ── INVERSE ── */
+  --color-inverse-surface: #2e3134;
+  --color-inverse-on-surface: #eff0f4;
+  --color-inverse-primary: #b4c5ff;
+
+  /* ── SIDEBAR ── */
+  --color-sidebar: #0a1628;
+  --color-sidebar-surface: #111d32;
+  --color-sidebar-hover: #182640;
+  --color-sidebar-active: #1a3158;
+  --color-sidebar-text: #8899b4;
+  --color-sidebar-text-active: #ffffff;
+  --color-sidebar-border: rgba(136, 153, 180, 0.12);
+
+  /* ── CELL BORDER (from mockups) ── */
+  --color-cell-border: rgba(169, 180, 185, 0.15);
+
+  /* ── TYPOGRAPHY ── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* ── BORDER RADIUS (sharp industrial = 0) ── */
+  --radius-none: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-full: 9999px;
+}
+
+/* ── GLOBAL RESETS ── */
+* {
+  border-radius: 0;
+}
+
+/* Keep pill badges round */
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-surface-container);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+/* ── MATERIAL SYMBOLS ── */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: "FILL" 0, "wght" 400;
+}
+
+/* ── CELL BORDER UTILITY ── */
+.cell-border {
+  border: 0.5px solid var(--color-cell-border);
+}
+
+/* ── UPPERCASE LABEL UTILITY ── */
+.label-caps {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+/* ── STATUS INDICATOR (blinking dot) ── */
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: status-pulse 2s ease-in-out infinite;
+}
+.status-dot--ok { background: var(--color-success); }
+.status-dot--warn { background: var(--color-warning); }
+.status-dot--error { background: var(--color-error); }
+
+/* ── TOAST OVERRIDES ── */
+[data-sonner-toaster] [data-sonner-toast],
+div[role="status"] > div {
+  border-radius: 0 !important;
+}

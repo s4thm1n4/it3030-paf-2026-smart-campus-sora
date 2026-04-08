@@ -25,7 +25,9 @@ export default function App() {
 
           {/* Protected — wrapped in MainLayout (navbar + footer) */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={
+              <ProtectedRoute><HomePage /></ProtectedRoute>
+            } />
 
             <Route path="/facilities" element={
               <ProtectedRoute><FacilitiesPage /></ProtectedRoute>
