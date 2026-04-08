@@ -485,6 +485,15 @@ export default function BookingsPage() {
 
                     {/* Delete — own CANCELLED/REJECTED bookings or admin */}
                     {(canDelete || canAdminDelete) && (
+                      <button
+                        onClick={() => setDeleteBookingId(booking.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-error bg-error/10 border border-error/20 rounded-none hover:bg-error/20 transition-colors"
+                      >
+                        <Icon name="delete" size={16} />
+                        Delete
+                      </button>
+                    )}
+
                     {/* Approve / Reject — PENDING bookings (admin only) */}
                     {booking.status === 'PENDING' && isAdmin() && (
                       <>
@@ -512,21 +521,23 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {/* New Booking Modal */}
+      {/* Create / Edit Booking Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold font-display text-on-surface">New Booking</h2>
+              <h2 className="text-lg font-bold font-display text-on-surface">
+                {editingBooking ? 'Edit Booking' : 'New Booking'}
+              </h2>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => { setShowForm(false); setEditingBooking(null); }}
                 className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <Icon name="close" size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Facility */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
@@ -629,7 +640,7 @@ export default function BookingsPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => { setShowForm(false); setEditingBooking(null); }}
                   className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
                 >
                   Cancel
@@ -639,7 +650,10 @@ export default function BookingsPage() {
                   disabled={submitting}
                   className="px-4 py-2 text-sm font-semibold text-on-primary bg-primary rounded-none hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting...' : 'Submit Booking'}
+                  {submitting
+                    ? (editingBooking ? 'Updating...' : 'Submitting...')
+                    : (editingBooking ? 'Update Booking' : 'Submit Booking')
+                  }
                 </button>
               </div>
             </form>
@@ -686,6 +700,37 @@ export default function BookingsPage() {
                 }`}
               >
                 {remarkAction === 'approve' ? 'Approve' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteBookingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-sm mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-error/10 rounded-full">
+                <Icon name="warning" size={24} className="text-error" />
+              </div>
+              <h2 className="text-lg font-bold font-display text-on-surface">Delete Booking</h2>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-6">
+              Are you sure you want to permanently delete this booking? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteBookingId(null)}
+                className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 text-sm font-semibold text-white bg-error rounded-none hover:bg-error/90 transition-colors"
+              >
+                Delete
               </button>
             </div>
           </div>
