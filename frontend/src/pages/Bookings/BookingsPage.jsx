@@ -33,8 +33,8 @@ export default function BookingsPage() {
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // UI state
-  const [tab, setTab] = useState('my');           // 'my' | 'all'
+  // UI state — admin defaults to "All Bookings" tab
+  const [tab, setTab] = useState(isAdmin() ? 'all' : 'my'); // 'my' | 'all'
   const [statusFilter, setStatusFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null); // null = create, object = edit
@@ -76,12 +76,13 @@ export default function BookingsPage() {
         const res = await bookingService.getAll(filters);
         setBookings(res.data);
       }
-    } catch {
+    } catch (err) {
+      console.error('[Bookings] Failed to load bookings:', err.response?.status, err.response?.data);
       toast.error('Failed to load bookings');
     } finally {
       setLoading(false);
     }
-  }, [tab, adminFilters]);
+  }, [tab, adminFilters, user?.id]);
 
   // Fetch facilities for form dropdown
   const fetchFacilities = useCallback(async () => {
@@ -96,6 +97,11 @@ export default function BookingsPage() {
   useEffect(() => {
     fetchBookings();
   }, [fetchBookings]);
+
+  // Reset bookings when user identity changes (logout → login with different account)
+  useEffect(() => {
+    setBookings([]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchFacilities();

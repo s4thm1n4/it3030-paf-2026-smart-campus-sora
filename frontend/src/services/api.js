@@ -36,9 +36,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Only clear stored credentials — React's ProtectedRoute will handle the redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Only clear credentials if the token that triggered the 401 matches
+      // the currently stored token. This prevents a race condition where
+      // a stale request from a previous session wipes the NEW token after re-login.
+      const requestToken = error.config?.headers?.Authorization?.replace('Bearer ', '');
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken || requestToken === currentToken) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     return Promise.reject(error);
   }
