@@ -2,7 +2,18 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
-import { HiOutlineArrowLeft } from 'react-icons/hi2';
+import {
+  HiOutlineArrowLeft,
+  HiOutlineTag,
+  HiOutlineMapPin,
+  HiOutlineUser,
+  HiOutlineWrenchScrewdriver,
+  HiOutlineBuildingOffice2,
+  HiOutlinePhone,
+  HiOutlineEnvelope,
+  HiOutlineExclamationTriangle,
+  HiOutlineCheckBadge,
+} from 'react-icons/hi2';
 import ticketService from '../../services/ticketService';
 import facilityService from '../../services/facilityService';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +24,72 @@ import PriorityBadge from '../../components/tickets/PriorityBadge';
 import TicketForm from '../../components/tickets/TicketForm';
 import TicketWorkflowPanel from '../../components/tickets/TicketWorkflowPanel';
 import TicketCommentThread from '../../components/tickets/TicketCommentThread';
+
+// Timeline dot colour per status
+const historyDotCls = {
+  OPEN: 'bg-blue-500',
+  IN_PROGRESS: 'bg-amber-500',
+  RESOLVED: 'bg-emerald-500',
+  CLOSED: 'bg-slate-500',
+  REJECTED: 'bg-rose-500',
+};
+
+function DetailRow({ icon: Icon, label, value }) {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <Icon className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+      <div className="min-w-0">
+        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-sm font-medium text-gray-900 break-words">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function ImageGallery({ urls }) {
+  const [active, setActive] = useState(null);
+  return (
+    <>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {urls.map((url) => (
+          <button
+            key={url}
+            type="button"
+            onClick={() => setActive(url)}
+            className="block overflow-hidden rounded-lg border border-gray-100 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <img
+              src={url}
+              alt=""
+              className="h-36 w-full object-cover hover:opacity-90 transition-opacity"
+            />
+          </button>
+        ))}
+      </div>
+      {active && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setActive(null)}
+        >
+          <img
+            src={active}
+            alt=""
+            className="max-h-[90vh] max-w-full rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            onClick={() => setActive(null)}
+            className="absolute top-4 right-4 rounded-full bg-white/20 p-2 text-white hover:bg-white/30"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
 
 export default function TicketDetailPage() {
   const { id } = useParams();
@@ -36,29 +113,29 @@ export default function TicketDetailPage() {
     }
   };
 
+  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  useEffect(() => {
-    facilityService
-      .getAll()
-      .then(({ data }) => setFacilities(data))
-      .catch(() => setFacilities([]));
+    facilityService.getAll().then(({ data }) => setFacilities(data)).catch(() => setFacilities([]));
   }, []);
 
+  const isAdmin = user?.role === 'ADMIN';
+  const isOwner = ticket && user?.id === ticket.createdBy?.id;
+
+  // Only admins can edit
   const canEdit =
     ticket &&
-    (ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS') &&
-    (user?.id === ticket.createdBy?.id || user?.role === 'ADMIN');
+    isAdmin &&
+    (ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS');
 
-  const canDelete =
-    ticket &&
-    (user?.role === 'ADMIN' || (user?.id === ticket.createdBy?.id && ticket.status === 'OPEN'));
+  // Users cancel their own OPEN tickets; admins can delete any
+  const canCancel = ticket && isOwner && ticket.status === 'OPEN';
+  const canAdminDelete = ticket && isAdmin;
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this ticket permanently?')) return;
+    const msg = isAdmin
+      ? 'Permanently delete this ticket?'
+      : 'Cancel this ticket? This cannot be undone.';
+    if (!window.confirm(msg)) return;
     try {
       await ticketService.delete(ticket.id);
       toast.success('Ticket deleted');
@@ -91,27 +168,30 @@ export default function TicketDetailPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb + header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0">
           <Link
             to="/tickets"
             className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 hover:text-blue-900 mb-2"
           >
             <HiOutlineArrowLeft className="h-4 w-4" />
-            Back to list
+            Back to service desk
           </Link>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">{ticket.title}</h1>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="font-mono text-sm text-gray-400">#{ticket.id}</span>
+            <h1 className="text-xl font-bold text-gray-900 break-words">{ticket.title}</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 mt-2">
             <StatusBadge status={ticket.status} />
             <PriorityBadge priority={ticket.priority} />
+            <span className="text-xs text-gray-400">
+              Reported {ticket.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY · h:mm A') : '—'}
+              {ticket.createdBy?.name && ` by ${ticket.createdBy.name}`}
+            </span>
           </div>
-          <p className="mt-2 text-sm text-gray-500">
-            #{ticket.id} · Reported{' '}
-            {ticket.createdAt ? dayjs(ticket.createdAt).format('MMM D, YYYY h:mm A') : '—'}
-            {ticket.createdBy?.name && ` · ${ticket.createdBy.name}`}
-          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 shrink-0">
           {canEdit && (
             <button
               type="button"
@@ -121,7 +201,16 @@ export default function TicketDetailPage() {
               Edit
             </button>
           )}
-          {canDelete && (
+          {canCancel && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-lg border border-amber-200 bg-white px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-50"
+            >
+              Cancel ticket
+            </button>
+          )}
+          {!canCancel && canAdminDelete && (
             <button
               type="button"
               onClick={handleDelete}
@@ -134,146 +223,149 @@ export default function TicketDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Left column */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Description */}
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
               Description
             </h2>
-            <p className="text-gray-800 whitespace-pre-wrap">{ticket.description}</p>
+            <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
           </section>
 
+          {/* Rejection / Resolution */}
           {(ticket.rejectionReason || ticket.resolutionNotes) && (
-            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
               {ticket.rejectionReason && (
-                <div className="mb-4">
-                  <h2 className="text-sm font-semibold text-rose-700 mb-1">Rejection reason</h2>
-                  <p className="text-gray-800 whitespace-pre-wrap">{ticket.rejectionReason}</p>
+                <div className="rounded-lg bg-rose-50 border border-rose-200 p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HiOutlineExclamationTriangle className="h-4 w-4 text-rose-600" />
+                    <h3 className="text-sm font-semibold text-rose-700">Rejection reason</h3>
+                  </div>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{ticket.rejectionReason}</p>
                 </div>
               )}
               {ticket.resolutionNotes && (
-                <div>
-                  <h2 className="text-sm font-semibold text-emerald-700 mb-1">Resolution</h2>
-                  <p className="text-gray-800 whitespace-pre-wrap">{ticket.resolutionNotes}</p>
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HiOutlineCheckBadge className="h-4 w-4 text-emerald-600" />
+                    <h3 className="text-sm font-semibold text-emerald-700">Resolution</h3>
+                  </div>
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{ticket.resolutionNotes}</p>
                 </div>
               )}
             </section>
           )}
 
+          {/* Attachments */}
           {ticket.imageUrls && ticket.imageUrls.length > 0 && (
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Attachments</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {ticket.imageUrls.map((url) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block overflow-hidden rounded-lg border border-gray-100 bg-gray-50"
-                  >
-                    <img src={url} alt="" className="h-40 w-full object-cover hover:opacity-90" />
-                  </a>
-                ))}
-              </div>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-4">
+                Photo evidence ({ticket.imageUrls.length})
+              </h2>
+              <ImageGallery urls={ticket.imageUrls} />
             </section>
           )}
 
+          {/* Status history */}
           {history.length > 0 && (
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Status history</h2>
-              <ol className="relative border-l border-gray-200 ml-3 space-y-6">
-                {history.map((h) => (
-                  <li key={h.id} className="relative pl-6">
-                    <span className="absolute left-[-6px] top-1.5 h-3 w-3 rounded-full bg-blue-500 ring-4 ring-white" />
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">
-                        {h.fromStatus != null ? statusLabel(h.fromStatus) : '—'}
-                      </span>
-                      {' → '}
-                      <span className="font-medium">{statusLabel(h.toStatus)}</span>
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {h.changedBy?.name ?? 'System'} ·{' '}
-                      {h.createdAt ? dayjs(h.createdAt).format('MMM D, YYYY h:mm A') : ''}
-                    </p>
-                    {h.note && (
-                      <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{h.note}</p>
-                    )}
-                  </li>
-                ))}
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-4">
+                Status history
+              </h2>
+              <ol className="relative border-l border-gray-200 ml-2 space-y-5">
+                {history.map((h) => {
+                  const dotCls = historyDotCls[h.toStatus] ?? 'bg-gray-400';
+                  return (
+                    <li key={h.id} className="relative pl-6">
+                      <span
+                        className={`absolute left-[-5px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white ${dotCls}`}
+                      />
+                      <div className="flex flex-wrap items-baseline gap-x-2">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {h.fromStatus != null ? statusLabel(h.fromStatus) : 'Created'}
+                          {h.fromStatus != null && (
+                            <span className="font-normal text-gray-400"> → {statusLabel(h.toStatus)}</span>
+                          )}
+                        </p>
+                        <span className="text-xs text-gray-400">
+                          {h.changedBy?.name ?? 'System'} ·{' '}
+                          {h.createdAt ? dayjs(h.createdAt).format('MMM D, YYYY h:mm A') : ''}
+                        </span>
+                      </div>
+                      {h.note && (
+                        <p className="mt-1 text-sm text-gray-600 italic whitespace-pre-wrap">
+                          "{h.note}"
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
               </ol>
             </section>
           )}
 
+          {/* Comments */}
           <TicketCommentThread ticketId={ticket.id} user={user} canView />
         </div>
 
-        <div className="space-y-6">
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
+        {/* Right sidebar */}
+        <div className="space-y-5">
+          {/* Details */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
               Details
             </h2>
-            <dl className="space-y-4 text-sm">
-              <div>
-                <dt className="text-gray-500">Category</dt>
-                <dd className="font-medium text-gray-900">{categoryLabel(ticket.category)}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Priority</dt>
-                <dd className="font-medium text-gray-900">{priorityLabel(ticket.priority)}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Reporter</dt>
-                <dd className="font-medium text-gray-900">{ticket.createdBy?.name ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Assigned to</dt>
-                <dd className="font-medium text-gray-900">{ticket.assignedTo?.name ?? 'Unassigned'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Location</dt>
-                <dd className="font-medium text-gray-900">{ticket.location ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Facility</dt>
-                <dd className="font-medium text-gray-900">
-                  {ticket.facility
+            <div>
+              <DetailRow icon={HiOutlineTag} label="Category" value={categoryLabel(ticket.category)} />
+              <DetailRow icon={HiOutlineTag} label="Priority" value={priorityLabel(ticket.priority)} />
+              <DetailRow icon={HiOutlineUser} label="Reporter" value={ticket.createdBy?.name} />
+              <DetailRow
+                icon={HiOutlineWrenchScrewdriver}
+                label="Assigned to"
+                value={ticket.assignedTo?.name ?? 'Unassigned'}
+              />
+              <DetailRow icon={HiOutlineMapPin} label="Location" value={ticket.location} />
+              <DetailRow
+                icon={HiOutlineBuildingOffice2}
+                label="Facility"
+                value={
+                  ticket.facility
                     ? `${ticket.facility.name} (${ticket.facility.location})`
-                    : '—'}
-                </dd>
-              </div>
-            </dl>
+                    : null
+                }
+              />
+            </div>
           </section>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
-              Contact preferences
-            </h2>
-            <dl className="space-y-2 text-sm">
+          {/* Contact */}
+          {(ticket.contactName || ticket.contactEmail || ticket.contactPhone) && (
+            <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+                Contact preferences
+              </h2>
               <div>
-                <dt className="text-gray-500">Name</dt>
-                <dd className="text-gray-900">{ticket.contactName ?? '—'}</dd>
+                <DetailRow icon={HiOutlineUser} label="Name" value={ticket.contactName} />
+                <DetailRow icon={HiOutlineEnvelope} label="Email" value={ticket.contactEmail} />
+                <DetailRow icon={HiOutlinePhone} label="Phone" value={ticket.contactPhone} />
               </div>
-              <div>
-                <dt className="text-gray-500">Email</dt>
-                <dd className="text-gray-900">{ticket.contactEmail ?? '—'}</dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">Phone</dt>
-                <dd className="text-gray-900">{ticket.contactPhone ?? '—'}</dd>
-              </div>
-            </dl>
-          </section>
+            </section>
+          )}
 
+          {/* Workflow */}
           <TicketWorkflowPanel ticket={ticket} user={user} onUpdated={(t) => setTicket(t)} />
         </div>
       </div>
 
+      {/* Edit modal */}
       {showEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
           <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-start justify-between gap-4">
-              <h2 className="text-lg font-semibold text-gray-900">Edit ticket</h2>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Edit ticket</h2>
+                <p className="text-sm text-gray-500">Update ticket details below.</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowEdit(false)}
@@ -288,10 +380,7 @@ export default function TicketDetailPage() {
               ticket={ticket}
               facilities={facilities}
               onCancel={() => setShowEdit(false)}
-              onSuccess={(updated) => {
-                setTicket(updated);
-                setShowEdit(false);
-              }}
+              onSuccess={(updated) => { setTicket(updated); setShowEdit(false); }}
             />
           </div>
         </div>

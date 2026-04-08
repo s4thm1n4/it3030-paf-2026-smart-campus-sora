@@ -8,12 +8,9 @@ import axios from 'axios';
  */
 const api = axios.create({
   baseURL: '/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
-// ── Request interceptor: attach token ──
+// ── Request interceptor: attach token + Content-Type ──
 api.interceptors.request.use(
   (config) => {
     try {
@@ -23,6 +20,11 @@ api.interceptors.request.use(
       }
     } catch (e) {
       // localStorage not available — skip
+    }
+    // For FormData let the browser set Content-Type with the correct multipart boundary.
+    // For everything else default to JSON.
+    if (!(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
     }
     return config;
   },
