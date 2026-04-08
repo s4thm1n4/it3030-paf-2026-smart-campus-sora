@@ -17,7 +17,7 @@ const adminNav = [
 ];
 
 export default function MainLayout() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, loading } = useAuth();
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -42,12 +42,20 @@ export default function MainLayout() {
     if (location.pathname !== '/notifications') fetchUnreadCount();
   }, [location.pathname, fetchUnreadCount]);
 
-  // Close mobile sidebar on navigation
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
   const isActive = (path) => location.pathname === path;
+
+  // Show spinner while auth state is being restored
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-surface">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">

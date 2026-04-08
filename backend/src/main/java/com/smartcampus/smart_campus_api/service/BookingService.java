@@ -13,6 +13,7 @@ import com.smartcampus.smart_campus_api.repository.FacilityRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -36,9 +37,16 @@ public class BookingService {
         this.notificationService = notificationService;
     }
 
-    /** Get all bookings. */
-    public List<Booking> getAll() {
-        return bookingRepository.findAll();
+    /** Get all bookings with optional filters (admin). */
+    public List<Booking> getAll(BookingStatus status, Long facilityId, LocalDate dateFrom, LocalDate dateTo) {
+        List<Booking> all = bookingRepository.findAll();
+
+        return all.stream()
+                .filter(b -> status == null || b.getStatus() == status)
+                .filter(b -> facilityId == null || b.getFacility().getId().equals(facilityId))
+                .filter(b -> dateFrom == null || !b.getBookingDate().isBefore(dateFrom))
+                .filter(b -> dateTo == null || !b.getBookingDate().isAfter(dateTo))
+                .toList();
     }
 
     /** Get a booking by ID or throw 404. */
@@ -86,8 +94,53 @@ public class BookingService {
     }
 
     /**
+     * Update a PENDING booking.
+     * Only the owner can update, and only while status is PENDING.
+     */
+    @Transactional
+    public Booking update(Long id, Long facilityId, Booking updated, User user) {
+        Booking booking = getById(id);
+
+        if (!booking.getRequestedBy().getId().equals(user.getId())) {
+            throw new BadRequestException("You can only update your own bookings");
+        }
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new BadRequestException("Only PENDING bookings can be updated");
+        }
+
+        Facility facility = facilityRepository.findById(facilityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Facility not found with id: " + facilityId));
+
+        if (!updated.getStartTime().isBefore(updated.getEndTime())) {
+            throw new BadRequestException("Start time must be before end time");
+        }
+
+        // Check for scheduling conflicts (exclude current booking)
+        List<Booking> conflicts = bookingRepository.findConflictingBookingsExcluding(
+                facilityId,
+                updated.getBookingDate(),
+                updated.getStartTime(),
+                updated.getEndTime(),
+                id
+        );
+        if (!conflicts.isEmpty()) {
+            throw new ConflictException("This facility already has a booking during the requested time slot");
+        }
+
+        booking.setFacility(facility);
+        booking.setBookingDate(updated.getBookingDate());
+        booking.setStartTime(updated.getStartTime());
+        booking.setEndTime(updated.getEndTime());
+        booking.setPurpose(updated.getPurpose());
+        booking.setAttendeeCount(updated.getAttendeeCount());
+
+        return bookingRepository.save(booking);
+    }
+
+    /**
      * Cancel a booking.
-     * Only the user who requested it can cancel, and only while it is PENDING.
+     * Only the user who requested it can cancel, while it is PENDING or APPROVED.
      */
     @Transactional
     public Booking cancel(Long id, User user) {
@@ -97,12 +150,49 @@ public class BookingService {
             throw new BadRequestException("You can only cancel your own bookings");
         }
 
-        if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new BadRequestException("Only PENDING bookings can be cancelled");
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.APPROVED) {
+            throw new BadRequestException("Only PENDING or APPROVED bookings can be cancelled");
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        notificationService.createNotification(
+                booking.getRequestedBy().getId(),
+                "Booking Cancelled",
+                "Your booking for " + booking.getFacility().getName() + " on " + booking.getBookingDate() + " has been cancelled.",
+                NotificationType.BOOKING_CANCELLED,
+                "/bookings"
+        );
+
+        return saved;
+    }
+
+    /**
+     * Delete a booking.
+     * Owner can delete own CANCELLED/REJECTED bookings. Admin can delete any.
+     */
+    @Transactional
+    public void delete(Long id, User user) {
+        Booking booking = getById(id);
+
+        boolean isOwner = booking.getRequestedBy().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == com.smartcampus.smart_campus_api.model.Role.ADMIN;
+
+        if (isAdmin) {
+            bookingRepository.delete(booking);
+            return;
+        }
+
+        if (!isOwner) {
+            throw new BadRequestException("You can only delete your own bookings");
+        }
+
+        if (booking.getStatus() != BookingStatus.CANCELLED && booking.getStatus() != BookingStatus.REJECTED) {
+            throw new BadRequestException("Only CANCELLED or REJECTED bookings can be deleted");
+        }
+
+        bookingRepository.delete(booking);
     }
 
     /**

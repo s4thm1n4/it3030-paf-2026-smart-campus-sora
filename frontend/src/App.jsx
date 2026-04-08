@@ -10,6 +10,7 @@ import LoginPage from './pages/Login/LoginPage';
 import FacilitiesPage from './pages/Facilities/FacilitiesPage';
 import BookingsPage from './pages/Bookings/BookingsPage';
 import TicketsPage from './pages/Tickets/TicketsPage';
+import TicketDetailPage from './pages/Tickets/TicketDetailPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
 import AdminPage from './pages/Admin/AdminPage';
 
@@ -24,7 +25,9 @@ export default function App() {
 
           {/* Protected — wrapped in MainLayout (navbar + footer) */}
           <Route element={<MainLayout />}>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={
+              <ProtectedRoute><HomePage /></ProtectedRoute>
+            } />
 
             <Route path="/facilities" element={
               <ProtectedRoute><FacilitiesPage /></ProtectedRoute>
@@ -36,6 +39,10 @@ export default function App() {
 
             <Route path="/tickets" element={
               <ProtectedRoute><TicketsPage /></ProtectedRoute>
+            } />
+
+            <Route path="/tickets/:id" element={
+              <ProtectedRoute><TicketDetailPage /></ProtectedRoute>
             } />
 
             <Route path="/notifications" element={

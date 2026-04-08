@@ -7,6 +7,7 @@ import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.service.NotificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -66,7 +67,8 @@ public class NotificationController {
         return ResponseEntity.ok(Map.of("count", count));
     }
 
-    /** POST /api/notifications — create a notification (for admin/system/other modules) */
+    /** POST /api/notifications — create a notification (admin only via REST; other modules call service directly) */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<NotificationResponse> create(
             @Valid @RequestBody CreateNotificationRequest request) {

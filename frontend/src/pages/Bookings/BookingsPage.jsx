@@ -16,6 +16,15 @@ const STATUS_CONFIG = {
 
 const STATUS_FILTERS = ['All', 'PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'];
 
+const EMPTY_FORM = {
+  facilityId: '',
+  bookingDate: '',
+  startTime: '',
+  endTime: '',
+  purpose: '',
+  attendeeCount: 1,
+};
+
 export default function BookingsPage() {
   const { user, isAdmin } = useAuth();
 
@@ -28,16 +37,18 @@ export default function BookingsPage() {
   const [tab, setTab] = useState('my');           // 'my' | 'all'
   const [statusFilter, setStatusFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null); // null = create, object = edit
+
+  // Admin filters for "All Bookings" tab
+  const [adminFilters, setAdminFilters] = useState({
+    status: '',
+    facilityId: '',
+    dateFrom: '',
+    dateTo: '',
+  });
 
   // Form state
-  const [form, setForm] = useState({
-    facilityId: '',
-    bookingDate: '',
-    startTime: '',
-    endTime: '',
-    purpose: '',
-    attendeeCount: 1,
-  });
+  const [form, setForm] = useState({ ...EMPTY_FORM });
   const [submitting, setSubmitting] = useState(false);
 
   // Admin remark state
@@ -45,20 +56,32 @@ export default function BookingsPage() {
   const [remarkAction, setRemarkAction] = useState(null); // 'approve' | 'reject'
   const [remarkText, setRemarkText] = useState('');
 
+  // Delete confirmation state
+  const [deleteBookingId, setDeleteBookingId] = useState(null);
+
   // Fetch bookings based on active tab
   const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
-      const res = tab === 'my'
-        ? await bookingService.getMyBookings()
-        : await bookingService.getAll();
-      setBookings(res.data);
+      if (tab === 'my') {
+        const res = await bookingService.getMyBookings();
+        setBookings(res.data);
+      } else {
+        // Admin tab — pass server-side filters
+        const filters = {};
+        if (adminFilters.status) filters.status = adminFilters.status;
+        if (adminFilters.facilityId) filters.facilityId = adminFilters.facilityId;
+        if (adminFilters.dateFrom) filters.dateFrom = adminFilters.dateFrom;
+        if (adminFilters.dateTo) filters.dateTo = adminFilters.dateTo;
+        const res = await bookingService.getAll(filters);
+        setBookings(res.data);
+      }
     } catch {
       toast.error('Failed to load bookings');
     } finally {
       setLoading(false);
     }
-  }, [tab]);
+  }, [tab, adminFilters]);
 
   // Fetch facilities for form dropdown
   const fetchFacilities = useCallback(async () => {
@@ -78,7 +101,7 @@ export default function BookingsPage() {
     fetchFacilities();
   }, [fetchFacilities]);
 
-  // Filtered bookings
+  // Filtered bookings (client-side status filter for "My Bookings" tab)
   const filtered = bookings.filter((b) => {
     if (statusFilter === 'All') return true;
     return b.status === statusFilter;
@@ -90,24 +113,51 @@ export default function BookingsPage() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCreate = async (e) => {
+  const openCreateForm = () => {
+    setEditingBooking(null);
+    setForm({ ...EMPTY_FORM });
+    setShowForm(true);
+  };
+
+  const openEditForm = (booking) => {
+    setEditingBooking(booking);
+    setForm({
+      facilityId: booking.facility?.id || '',
+      bookingDate: booking.bookingDate || '',
+      startTime: booking.startTime?.slice(0, 5) || '',
+      endTime: booking.endTime?.slice(0, 5) || '',
+      purpose: booking.purpose || '',
+      attendeeCount: booking.attendeeCount || 1,
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await bookingService.create({
+      const payload = {
         facilityId: Number(form.facilityId),
         bookingDate: form.bookingDate,
         startTime: form.startTime,
         endTime: form.endTime,
         purpose: form.purpose,
         attendeeCount: Number(form.attendeeCount),
-      });
-      toast.success('Booking request submitted');
+      };
+
+      if (editingBooking) {
+        await bookingService.update(editingBooking.id, payload);
+        toast.success('Booking updated successfully');
+      } else {
+        await bookingService.create(payload);
+        toast.success('Booking request submitted');
+      }
       setShowForm(false);
-      setForm({ facilityId: '', bookingDate: '', startTime: '', endTime: '', purpose: '', attendeeCount: 1 });
+      setEditingBooking(null);
+      setForm({ ...EMPTY_FORM });
       fetchBookings();
     } catch (err) {
-      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to create booking';
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to save booking';
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -119,8 +169,22 @@ export default function BookingsPage() {
       await bookingService.cancel(id);
       toast.success('Booking cancelled');
       fetchBookings();
-    } catch {
-      toast.error('Failed to cancel booking');
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to cancel booking';
+      toast.error(msg);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteBookingId) return;
+    try {
+      await bookingService.delete(deleteBookingId);
+      toast.success('Booking deleted');
+      setDeleteBookingId(null);
+      fetchBookings();
+    } catch (err) {
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to delete booking';
+      toast.error(msg);
     }
   };
 
@@ -148,6 +212,15 @@ export default function BookingsPage() {
     }
   };
 
+  const handleAdminFilterChange = (e) => {
+    const { name, value } = e.target;
+    setAdminFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const clearAdminFilters = () => {
+    setAdminFilters({ status: '', facilityId: '', dateFrom: '', dateTo: '' });
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -170,7 +243,7 @@ export default function BookingsPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openCreateForm}
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-none hover:bg-primary/90 transition-colors"
         >
           <Icon name="add" size={18} />
@@ -182,7 +255,7 @@ export default function BookingsPage() {
       <div className="flex gap-6 mb-4 border-b border-cell-border">
         {[
           { key: 'my', label: 'My Bookings' },
-          { key: 'all', label: 'All Bookings' },
+          ...(isAdmin() ? [{ key: 'all', label: 'All Bookings' }] : []),
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -198,23 +271,93 @@ export default function BookingsPage() {
         ))}
       </div>
 
-      {/* Status Filters */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
-        <Icon name="filter_list" size={18} className="text-outline flex-shrink-0" />
-        {STATUS_FILTERS.map((status) => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors ${
-              statusFilter === status
-                ? 'bg-primary text-on-primary'
-                : 'bg-surface-container-lowest text-on-surface-variant border border-cell-border hover:bg-surface'
-            }`}
-          >
-            {status === 'All' ? 'All' : STATUS_CONFIG[status]?.label || status}
-          </button>
-        ))}
-      </div>
+      {/* Admin Filters (only on "All Bookings" tab) */}
+      {tab === 'all' && isAdmin() && (
+        <div className="mb-6 p-4 bg-surface-container-lowest border border-cell-border">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant flex items-center gap-1.5">
+              <Icon name="tune" size={16} />
+              Filters
+            </h3>
+            <button
+              onClick={clearAdminFilters}
+              className="text-xs text-primary hover:text-primary/80 font-semibold"
+            >
+              Clear All
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">Status</label>
+              <select
+                name="status"
+                value={adminFilters.status}
+                onChange={handleAdminFilterChange}
+                className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">All Statuses</option>
+                {['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'].map((s) => (
+                  <option key={s} value={s}>{STATUS_CONFIG[s]?.label || s}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">Facility</label>
+              <select
+                name="facilityId"
+                value={adminFilters.facilityId}
+                onChange={handleAdminFilterChange}
+                className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">All Facilities</option>
+                {facilities.map((f) => (
+                  <option key={f.id} value={f.id}>{f.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">Date From</label>
+              <input
+                type="date"
+                name="dateFrom"
+                value={adminFilters.dateFrom}
+                onChange={handleAdminFilterChange}
+                className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">Date To</label>
+              <input
+                type="date"
+                name="dateTo"
+                value={adminFilters.dateTo}
+                onChange={handleAdminFilterChange}
+                className="w-full rounded-none border border-cell-border bg-surface px-3 py-2 text-sm text-on-surface font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Filters (client-side quick filters for "My Bookings" tab) */}
+      {tab === 'my' && (
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+          <Icon name="filter_list" size={18} className="text-outline flex-shrink-0" />
+          {STATUS_FILTERS.map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors ${
+                statusFilter === status
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-lowest text-on-surface-variant border border-cell-border hover:bg-surface'
+              }`}
+            >
+              {status === 'All' ? 'All' : STATUS_CONFIG[status]?.label || status}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Booking List */}
       {filtered.length === 0 ? (
@@ -232,6 +375,10 @@ export default function BookingsPage() {
           {filtered.map((booking) => {
             const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
             const isOwn = booking.requestedBy?.id === user?.id;
+            const canCancel = isOwn && (booking.status === 'PENDING' || booking.status === 'APPROVED');
+            const canEdit = isOwn && booking.status === 'PENDING';
+            const canDelete = isOwn && (booking.status === 'CANCELLED' || booking.status === 'REJECTED');
+            const canAdminDelete = isAdmin();
 
             return (
               <div
@@ -314,14 +461,36 @@ export default function BookingsPage() {
 
                   {/* Right: actions */}
                   <div className="flex flex-wrap gap-2 flex-shrink-0">
-                    {/* Cancel — own PENDING bookings only */}
-                    {isOwn && booking.status === 'PENDING' && (
+                    {/* Edit — own PENDING bookings only */}
+                    {canEdit && (
+                      <button
+                        onClick={() => openEditForm(booking)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-primary bg-primary/10 border border-primary/20 rounded-none hover:bg-primary/20 transition-colors"
+                      >
+                        <Icon name="edit" size={16} />
+                        Edit
+                      </button>
+                    )}
+
+                    {/* Cancel — own PENDING or APPROVED bookings */}
+                    {canCancel && (
                       <button
                         onClick={() => handleCancel(booking.id)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
                       >
                         <Icon name="close" size={16} />
                         Cancel
+                      </button>
+                    )}
+
+                    {/* Delete — own CANCELLED/REJECTED bookings or admin */}
+                    {(canDelete || canAdminDelete) && (
+                      <button
+                        onClick={() => setDeleteBookingId(booking.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-error bg-error/10 border border-error/20 rounded-none hover:bg-error/20 transition-colors"
+                      >
+                        <Icon name="delete" size={16} />
+                        Delete
                       </button>
                     )}
 
@@ -352,21 +521,23 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {/* New Booking Modal */}
+      {/* Create / Edit Booking Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold font-display text-on-surface">New Booking</h2>
+              <h2 className="text-lg font-bold font-display text-on-surface">
+                {editingBooking ? 'Edit Booking' : 'New Booking'}
+              </h2>
               <button
-                onClick={() => setShowForm(false)}
+                onClick={() => { setShowForm(false); setEditingBooking(null); }}
                 className="p-1 text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <Icon name="close" size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Facility */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-1">
@@ -469,7 +640,7 @@ export default function BookingsPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => { setShowForm(false); setEditingBooking(null); }}
                   className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
                 >
                   Cancel
@@ -479,7 +650,10 @@ export default function BookingsPage() {
                   disabled={submitting}
                   className="px-4 py-2 text-sm font-semibold text-on-primary bg-primary rounded-none hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting...' : 'Submit Booking'}
+                  {submitting
+                    ? (editingBooking ? 'Updating...' : 'Submitting...')
+                    : (editingBooking ? 'Update Booking' : 'Submit Booking')
+                  }
                 </button>
               </div>
             </form>
@@ -526,6 +700,37 @@ export default function BookingsPage() {
                 }`}
               >
                 {remarkAction === 'approve' ? 'Approve' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteBookingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-sm mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-error/10 rounded-full">
+                <Icon name="warning" size={24} className="text-error" />
+              </div>
+              <h2 className="text-lg font-bold font-display text-on-surface">Delete Booking</h2>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-6">
+              Are you sure you want to permanently delete this booking? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeleteBookingId(null)}
+                className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 text-sm font-semibold text-white bg-error rounded-none hover:bg-error/90 transition-colors"
+              >
+                Delete
               </button>
             </div>
           </div>

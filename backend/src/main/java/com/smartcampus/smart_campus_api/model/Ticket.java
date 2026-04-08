@@ -63,11 +63,26 @@ public class Ticket {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User assignedTo;
 
+    /** Preferred contact name */
+    private String contactName;
+
+    /** Preferred contact email */
+    private String contactEmail;
+
     /** Contact phone for on-site coordination */
     private String contactPhone;
 
+    /** Optional link to a campus facility / resource */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "facility_id")
+    private Facility facility;
+
     /** Location where the issue is */
     private String location;
+
+    /** Set when status is REJECTED (admin only) */
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
 
     /** Up to 3 image attachment URLs */
     @ElementCollection
@@ -84,6 +99,10 @@ public class Ticket {
     @JsonIgnoreProperties({"ticket"})
     @Builder.Default
     private List<Comment> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "ticket", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<TicketStatusHistory> statusHistory = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdAt;

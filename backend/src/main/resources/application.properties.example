@@ -23,7 +23,7 @@ spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 # ── OAuth 2.0 (Google) — get from console.cloud.google.com ──
 # Ask your team lead for the shared Client ID and Secret
 # OR create your own at console.cloud.google.com → APIs & Services → Credentials
-spring.security.oauth2.client.registration.google.client-id=YOUR_GOOGLE_CLIENT_ID
+spring.security.oauth2.client.registration.google.client-id=126146665560-9l2epvmd9fq6k6ckk4r4td75fm2cp5qv.apps.googleusercontent.com
 spring.security.oauth2.client.registration.google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 spring.security.oauth2.client.registration.google.scope=openid,profile,email
 
@@ -36,6 +36,10 @@ server.port=8080
 
 # ── App Custom Config ──
 app.cors.allowed-origins=http://localhost:5173
+# Any non-empty string works — the app hashes it with SHA-256 for HS256 signing.
 app.jwt.secret=CHANGE_THIS_TO_A_LONG_RANDOM_SECRET_STRING
+app.jwt.secret=SmartCampusSoraIT3030SuperSecretJwtKey2026!!
 app.jwt.expiration-ms=86400000
 
+# Ticket image storage (MODULE C) — files under {dir}/tickets/
+app.upload.dir=uploads
