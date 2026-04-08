@@ -26,27 +26,32 @@ export default function HomePage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [facilitiesRes, bookingsRes, ticketsRes, unreadCountRes, notificationsRes] =
-          await Promise.all([
-            facilityService.getAll(),
-            bookingService.getMyBookings(),
-            ticketService.getMyTickets(),
-            notificationService.getUnreadCount(),
-            notificationService.getAll(),
-          ]);
+        // Use allSettled so one failing call doesn't kill the whole dashboard
+        const results = await Promise.allSettled([
+          facilityService.getAll(),
+          bookingService.getMyBookings(),
+          ticketService.getMyTickets(),
+          notificationService.getUnreadCount(),
+          notificationService.getAll(),
+        ]);
+
+        const [facilitiesRes, bookingsRes, ticketsRes, unreadCountRes, notificationsRes] = results;
 
         setStats({
-          facilities: facilitiesRes.data?.length ?? 0,
-          bookings: bookingsRes.data?.length ?? 0,
-          tickets: ticketsRes.data?.length ?? 0,
-          unreadNotifications: typeof unreadCountRes.data === 'number' ? unreadCountRes.data : unreadCountRes.data?.count ?? 0,
+          facilities: facilitiesRes.status === 'fulfilled' ? (facilitiesRes.value.data?.length ?? 0) : 0,
+          bookings: bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data?.length ?? 0) : 0,
+          tickets: ticketsRes.status === 'fulfilled' ? (ticketsRes.value.data?.length ?? 0) : 0,
+          unreadNotifications: unreadCountRes.status === 'fulfilled'
+            ? (typeof unreadCountRes.value.data === 'number' ? unreadCountRes.value.data : unreadCountRes.value.data?.count ?? 0)
+            : 0,
         });
 
-        const allNotifs = Array.isArray(notificationsRes.data) ? notificationsRes.data : [];
-        setRecentNotifications(allNotifs.slice(0, 5));
+        if (notificationsRes.status === 'fulfilled') {
+          const allNotifs = Array.isArray(notificationsRes.value.data) ? notificationsRes.value.data : [];
+          setRecentNotifications(allNotifs.slice(0, 5));
+        }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
-        toast.error('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }

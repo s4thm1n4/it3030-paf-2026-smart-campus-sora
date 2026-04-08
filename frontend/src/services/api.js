@@ -32,13 +32,16 @@ api.interceptors.request.use(
 );
 
 // ── Response interceptor: handle auth errors ──
+// NOTE: We do NOT hard-redirect on 401. The React auth context + ProtectedRoute
+// handle redirecting to /login. A hard window.location.href would wipe React
+// state mid-render and cause a login loop after sign-in.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (error.response?.status === 401) {
+      // Only clear stored credentials — React's ProtectedRoute will handle the redirect
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
