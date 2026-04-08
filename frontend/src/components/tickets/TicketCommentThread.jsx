@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
-import { HiOutlinePaperAirplane, HiOutlinePencilSquare, HiOutlineTrash } from 'react-icons/hi2';
+import { HiOutlinePaperAirplane, HiOutlinePencilSquare, HiOutlineTrash, HiOutlineShieldCheck } from 'react-icons/hi2';
 import ticketService from '../../services/ticketService';
 import { getApiErrorMessage } from '../../utils/apiError';
 
@@ -44,10 +44,13 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newText, setNewText] = useState('');
+  const [replyText, setReplyText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [replySubmitting, setReplySubmitting] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
   const bottomRef = useRef(null);
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const load = async () => {
     if (!canView) return;
@@ -108,6 +111,24 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
     }
   };
 
+  const handleOfficialReply = async (e) => {
+    e.preventDefault();
+    const t = replyText.trim();
+    if (!t) return;
+    setReplySubmitting(true);
+    try {
+      const { data } = await ticketService.addComment(ticketId, { content: t });
+      setComments((prev) => [...prev, data]);
+      setReplyText('');
+      toast.success('Official reply sent');
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err));
+    } finally {
+      setReplySubmitting(false);
+    }
+  };
+
   if (!canView) return null;
 
   return (
@@ -124,20 +145,25 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
         <ul className="space-y-5 mb-6">
           {comments.map((c) => {
             const isOwner = user && c.author?.id === user.id;
-            const isAdmin = user?.role === 'ADMIN';
+            const isAdminViewer = user?.role === 'ADMIN';
             const wasEdited = c.updatedAt && c.updatedAt !== c.createdAt;
+            const isOfficialReply = c.author?.role && c.author.role !== 'USER';
             return (
-              <li key={c.id} className="flex gap-3">
+              <li
+                key={c.id}
+                className={`flex gap-3 ${isOfficialReply ? 'rounded-xl border border-blue-200 bg-blue-50/60 p-3' : ''}`}
+              >
                 <Avatar user={c.author} />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-x-2 mb-1">
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-gray-900">
                         {c.author?.name ?? 'User'}
                       </span>
-                      {c.author?.role && c.author.role !== 'USER' && (
-                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-                          {c.author.role}
+                      {isOfficialReply && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                          <HiOutlineShieldCheck className="h-3 w-3" />
+                          Official Reply
                         </span>
                       )}
                       <span className="text-xs text-gray-400">
@@ -157,7 +183,7 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
                             Edit
                           </button>
                         )}
-                        {(isOwner || isAdmin) && (
+                        {(isOwner || isAdminViewer) && (
                           <button
                             type="button"
                             onClick={() => remove(c.id)}
@@ -198,7 +224,7 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                    <div className={`rounded-lg px-4 py-3 ${isOfficialReply ? 'bg-white border border-blue-100' : 'bg-gray-50 border border-gray-100'}`}>
                       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
                         {c.content}
                       </p>
@@ -213,7 +239,40 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
 
       <div ref={bottomRef} />
 
-      {/* Add comment */}
+      {/* Official Reply — admin only */}
+      {isAdmin && (
+        <form onSubmit={handleOfficialReply} className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <HiOutlineShieldCheck className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-semibold text-blue-700">Send Official Reply</span>
+            <span className="text-xs text-blue-500">· Visible to the reporter as an official response</span>
+          </div>
+          <div className="flex gap-3 items-start">
+            <Avatar user={user} />
+            <div className="flex-1 space-y-2">
+              <textarea
+                rows={3}
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write your official response to this ticket…"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={replySubmitting || !replyText.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <HiOutlineShieldCheck className="h-4 w-4" />
+                  {replySubmitting ? 'Sending…' : 'Send Official Reply'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* Regular comment */}
       <form onSubmit={handleAdd} className="flex gap-3 items-start border-t border-gray-100 pt-4">
         <Avatar user={user} />
         <div className="flex-1 space-y-2">
@@ -221,17 +280,17 @@ export default function TicketCommentThread({ ticketId, user, canView }) {
             rows={3}
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
-            placeholder="Add an update, question, or coordination note…"
+            placeholder={isAdmin ? 'Add an internal note or coordination comment…' : 'Add an update or question…'}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={submitting || !newText.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-gray-700 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
             >
               <HiOutlinePaperAirplane className="h-4 w-4" />
-              {submitting ? 'Posting…' : 'Post comment'}
+              {submitting ? 'Posting…' : isAdmin ? 'Post internal note' : 'Post comment'}
             </button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { HiOutlinePhoto, HiOutlineXCircle } from 'react-icons/hi2';
 import ticketService from '../../services/ticketService';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { TICKET_CATEGORIES, TICKET_PRIORITIES } from '../../constants/tickets';
+import { useAuth } from '../../context/AuthContext';
 
 const MAX_IMAGES = 3;
 const MAX_SIZE_MB = 5;
@@ -59,6 +60,7 @@ function FilePreview({ file, onRemove }) {
 }
 
 export default function TicketForm({ mode, ticket, facilities = [], onSuccess, onCancel }) {
+  const { user } = useAuth();
   const [values, setValues] = useState(
     mode === 'edit' && ticket ? ticketToForm(ticket) : emptyForm()
   );
@@ -174,12 +176,26 @@ export default function TicketForm({ mode, ticket, facilities = [], onSuccess, o
   const inputCls =
     'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
 
+  const firstName = user?.name?.split(' ')[0] ?? '';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* Title */}
+      {/* Greeting */}
+      {mode === 'create' && (
+        <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 px-5 py-4">
+          <p className="text-base font-semibold text-blue-800">
+            Hi {firstName}! 👋
+          </p>
+          <p className="text-sm text-blue-600 mt-0.5">
+            Tell us what's going on and we'll get it sorted out.
+          </p>
+        </div>
+      )}
+
+      {/* Issue Summary */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Title <span className="text-red-500">*</span>
+          Issue Summary <span className="text-red-500">*</span>
         </label>
         <input
           type="text"

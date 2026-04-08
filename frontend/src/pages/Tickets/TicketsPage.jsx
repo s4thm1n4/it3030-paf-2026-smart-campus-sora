@@ -6,7 +6,6 @@ import {
   HiOutlinePlusCircle,
   HiOutlineMagnifyingGlass,
   HiOutlineTicket,
-  HiOutlinePencilSquare,
   HiOutlineTrash,
 } from 'react-icons/hi2';
 import ticketService from '../../services/ticketService';
@@ -41,8 +40,12 @@ export default function TicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [editTicket, setEditTicket] = useState(null);
   const [facilities, setFacilities] = useState([]);
+
+  // Default admin/staff to the all-tickets queue
+  useEffect(() => {
+    if (isStaff && isStaff()) setTab('queue');
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Filters
   const [search, setSearch] = useState('');
@@ -328,11 +331,7 @@ export default function TicketsPage() {
                 {filtered.map((t) => {
                   const isAdmin = user?.role === 'ADMIN';
                   const isOwner = user?.id === t.createdBy?.id;
-                  // Only admins can edit tickets
-                  const canEdit =
-                    isAdmin &&
-                    (t.status === 'OPEN' || t.status === 'IN_PROGRESS');
-                  // Users can cancel (delete) their own OPEN tickets; admins can delete any
+                  // Users can cancel their own OPEN tickets; admins can delete any
                   const canCancel = isOwner && t.status === 'OPEN';
                   const canAdminDelete = isAdmin;
                   return (
@@ -373,16 +372,12 @@ export default function TicketsPage() {
                     )}
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end gap-1">
-                        {canEdit && (
-                          <button
-                            type="button"
-                            onClick={() => setEditTicket(t)}
-                            className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50"
-                          >
-                            <HiOutlinePencilSquare className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                        )}
+                        <Link
+                          to={`/tickets/${t.id}`}
+                          className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                        >
+                          View →
+                        </Link>
                         {canCancel && (
                           <button
                             type="button"
@@ -390,7 +385,7 @@ export default function TicketsPage() {
                             className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-white px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50"
                           >
                             <HiOutlineTrash className="h-3.5 w-3.5" />
-                            Cancel ticket
+                            Cancel
                           </button>
                         )}
                         {!canCancel && canAdminDelete && (
@@ -402,14 +397,6 @@ export default function TicketsPage() {
                             <HiOutlineTrash className="h-3.5 w-3.5" />
                             Delete
                           </button>
-                        )}
-                        {!canEdit && !canCancel && !canAdminDelete && (
-                          <Link
-                            to={`/tickets/${t.id}`}
-                            className="text-xs text-gray-400 hover:text-blue-600"
-                          >
-                            View →
-                          </Link>
                         )}
                       </div>
                     </td>
@@ -425,39 +412,6 @@ export default function TicketsPage() {
           </div>
         )}
       </div>
-
-      {/* Edit modal */}
-      {editTicket && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
-          <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Edit ticket #{editTicket.id}</h2>
-                <p className="text-sm text-gray-500">Update the ticket details below.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditTicket(null)}
-                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <TicketForm
-              mode="edit"
-              ticket={editTicket}
-              facilities={facilities}
-              onCancel={() => setEditTicket(null)}
-              onSuccess={async (updated) => {
-                setEditTicket(null);
-                setTickets((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-                toast.success('Ticket updated');
-              }}
-            />
-          </div>
-        </div>
-      )}
 
       {/* Create modal */}
       {showCreate && (
