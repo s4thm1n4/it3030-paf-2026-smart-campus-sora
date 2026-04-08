@@ -1,5 +1,6 @@
 package com.smartcampus.smart_campus_api.service;
 
+import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
 import com.smartcampus.smart_campus_api.model.Role;
 import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.repository.UserRepository;
@@ -72,7 +73,7 @@ public class UserService {
     @Transactional
     public User updateRole(Long userId, Role role) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         user.setRole(role);
         return userRepository.save(user);
     }
