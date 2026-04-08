@@ -1,22 +1,24 @@
 package com.smartcampus.smart_campus_api.controller;
 
-import com.smartcampus.smart_campus_api.model.Role;
+import com.smartcampus.smart_campus_api.dto.UpdateRoleRequest;
 import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Admin-only endpoints for user management.
- * All routes require ADMIN role (enforced by SecurityConfig).
+ * All routes require ADMIN role (enforced by SecurityConfig + @PreAuthorize).
  *
  * @author Member 4 (M4)
  */
 @RestController
 @RequestMapping("/api/admin")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserService userService;
@@ -35,10 +37,8 @@ public class AdminController {
     @PatchMapping("/users/{id}/role")
     public ResponseEntity<User> updateRole(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        String roleStr = body.get("role");
-        Role role = Role.valueOf(roleStr);
-        User updated = userService.updateRole(id, role);
+            @Valid @RequestBody UpdateRoleRequest request) {
+        User updated = userService.updateRole(id, request.role());
         return ResponseEntity.ok(updated);
     }
 }
