@@ -7,35 +7,49 @@ import ViewToggle from '../../components/common/ViewToggle';
 import StatusBadge from '../../components/common/StatusBadge';
 
 const FACILITY_TYPES = [
-  'ROOM',
-  'LAB',
+  'LECTURE_HALL',
+  'LABORATORY',
+  'MEETING_ROOM',
+  'AUDITORIUM',
   'EQUIPMENT',
+  'SPORTS_FACILITY',
+  'OTHER',
 ];
 
-const FACILITY_STATUSES = ['ACTIVE', 'OUT_OF_SERVICE'];
+const FACILITY_STATUSES = ['ACTIVE', 'OUT_OF_SERVICE', 'UNDER_MAINTENANCE'];
 
 const TYPE_COLORS = {
-  ROOM: 'bg-primary-container text-primary',
-  LAB: 'bg-accent-container text-accent',
+  LECTURE_HALL: 'bg-primary-container text-primary',
+  LABORATORY: 'bg-accent-container text-accent',
+  MEETING_ROOM: 'bg-primary-container text-primary',
+  AUDITORIUM: 'bg-accent-container text-accent-dim',
   EQUIPMENT: 'bg-accent-container text-accent-dim',
+  SPORTS_FACILITY: 'bg-primary-container text-primary',
+  OTHER: 'bg-on-surface/10 text-on-surface-variant',
 };
 
 const STATUS_LABELS = {
   ACTIVE: 'Active',
   OUT_OF_SERVICE: 'Out of Service',
+  UNDER_MAINTENANCE: 'Under Maintenance',
 };
 
 const TYPE_LABELS = {
-  ROOM: 'Room',
-  LAB: 'Lab',
+  LECTURE_HALL: 'Lecture Hall',
+  LABORATORY: 'Laboratory',
+  MEETING_ROOM: 'Meeting Room',
+  AUDITORIUM: 'Auditorium',
   EQUIPMENT: 'Equipment',
+  SPORTS_FACILITY: 'Sports Facility',
+  OTHER: 'Other',
 };
 
 const EMPTY_FORM = {
   name: '',
-  type: 'ROOM',
+  type: 'LECTURE_HALL',
   location: '',
-  capacity: '',
+  capacity: 1,
+  description: '',
   availableFrom: '',
   availableTo: '',
   status: 'ACTIVE',
@@ -104,7 +118,8 @@ export default function FacilitiesPage() {
       name: facility.name,
       type: facility.type,
       location: facility.location || '',
-      capacity: facility.capacity ?? '',
+      capacity: facility.capacity ?? 1,
+      description: facility.description || '',
       availableFrom: normalizeTimeInput(facility.availableFrom),
       availableTo: normalizeTimeInput(facility.availableTo),
       status: facility.status,
@@ -128,9 +143,10 @@ export default function FacilitiesPage() {
       setSubmitting(true);
       const payload = {
         ...form,
-        capacity: form.capacity === '' ? null : Number(form.capacity),
+        capacity: Math.max(1, Number(form.capacity) || 1),
         availableFrom: form.availableFrom || null,
         availableTo: form.availableTo || null,
+        description: form.description || null,
       };
       if (editingId) {
         const res = await facilityService.update(editingId, payload);
@@ -323,13 +339,24 @@ export default function FacilitiesPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Capacity</label>
+                <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Capacity *</label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
                   value={form.capacity}
                   onChange={(e) => setForm({ ...form, capacity: e.target.value })}
                   className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Description</label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors resize-none"
+                  placeholder="Optional description..."
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

@@ -3,9 +3,9 @@ package com.smartcampus.smart_campus_api.dto;
 import com.smartcampus.smart_campus_api.model.FacilityStatus;
 import com.smartcampus.smart_campus_api.model.FacilityType;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,10 +29,16 @@ public class FacilityDTO {
     @NotNull(message = "Type is required")
     private FacilityType type;
 
-    @PositiveOrZero(message = "Capacity must be zero or greater")
+    @NotNull(message = "Capacity is required")
+    @Min(value = 1, message = "Capacity must be at least 1")
     private Integer capacity;
 
+    @NotBlank(message = "Location is required")
     private String location;
+
+    private String description;
+
+    private String imageUrl;
 
     @JsonFormat(pattern = "HH:mm")
     private LocalTime availableFrom;

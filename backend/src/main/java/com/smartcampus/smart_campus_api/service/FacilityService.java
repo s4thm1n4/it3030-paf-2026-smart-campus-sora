@@ -52,6 +52,8 @@ public class FacilityService {
         existingFacility.setType(facilityDTO.getType());
         existingFacility.setCapacity(facilityDTO.getCapacity());
         existingFacility.setLocation(facilityDTO.getLocation());
+        existingFacility.setDescription(facilityDTO.getDescription());
+        existingFacility.setImageUrl(facilityDTO.getImageUrl());
         existingFacility.setAvailableFrom(facilityDTO.getAvailableFrom());
         existingFacility.setAvailableTo(facilityDTO.getAvailableTo());
         existingFacility.setStatus(facilityDTO.getStatus());

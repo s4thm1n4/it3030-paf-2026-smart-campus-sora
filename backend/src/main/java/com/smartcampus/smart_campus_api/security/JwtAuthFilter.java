@@ -56,7 +56,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         Long userId = jwtUtil.extractUserId(token);
-        String role = jwtUtil.extractRole(token);
 
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -65,6 +64,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         User user = userOpt.get();
+        // Use the role from the database (not the JWT) so role changes take effect immediately
+        String role = user.getRole().name();
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(

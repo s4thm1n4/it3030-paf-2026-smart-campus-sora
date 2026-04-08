@@ -25,6 +25,25 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Refresh user profile from backend to pick up role changes
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    authService.getProfile()
+      .then((res) => {
+        const { id, name, email, role, profilePictureUrl } = res.data;
+        const fresh = { id, name, email, role, profilePictureUrl };
+        localStorage.setItem('user', JSON.stringify(fresh));
+        setUser(fresh);
+      })
+      .catch(() => {
+        // token expired or invalid — clear auth
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+      });
+  }, []);
+
   const login = async (googleCredential) => {
     const response = await authService.googleLogin(googleCredential);
     const { token, id, name, email, role, profilePictureUrl } = response.data;

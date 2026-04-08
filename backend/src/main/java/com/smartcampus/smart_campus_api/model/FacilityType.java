@@ -1,7 +1,11 @@
 package com.smartcampus.smart_campus_api.model;
 
 public enum FacilityType {
-    ROOM,
-    LAB,
-    EQUIPMENT
+    LECTURE_HALL,
+    LABORATORY,
+    MEETING_ROOM,
+    AUDITORIUM,
+    EQUIPMENT,
+    SPORTS_FACILITY,
+    OTHER
 }

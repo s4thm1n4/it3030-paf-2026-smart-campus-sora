@@ -13,7 +13,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -36,11 +39,15 @@ public class Facility {
     @Column(nullable = false)
     private FacilityType type;
 
-    @Column
+    @Column(nullable = false)
     private Integer capacity;
 
-    @Column
+    @Column(nullable = false)
     private String location;
+
+    private String description;
+
+    private String imageUrl;
 
     @Column(name = "available_from")
     private LocalTime availableFrom;
@@ -51,4 +58,10 @@ public class Facility {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FacilityStatus status;
+
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }

@@ -3,6 +3,7 @@ package com.smartcampus.smart_campus_api.config;
 import com.smartcampus.smart_campus_api.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -54,7 +55,11 @@ public class SecurityConfig {
                 // Public endpoints — no token needed
                 .requestMatchers("/api/auth/google").permitAll()
                 .requestMatchers("/api/health").permitAll()
-                .requestMatchers("/api/facilities/**").permitAll()
+                // Facilities: GET is public, write operations require ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/facilities", "/api/facilities/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/facilities").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/facilities/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/facilities/**").hasRole("ADMIN")
                 // Admin-only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Everything else requires a valid JWT (including /api/auth/me)
