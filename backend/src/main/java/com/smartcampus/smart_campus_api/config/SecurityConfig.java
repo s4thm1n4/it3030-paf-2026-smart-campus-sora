@@ -54,6 +54,7 @@ public class SecurityConfig {
                 // Public endpoints — no token needed
                 .requestMatchers("/api/auth/google").permitAll()
                 .requestMatchers("/api/health").permitAll()
+                .requestMatchers("/api/facilities/**").permitAll()
                 // Admin-only endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Everything else requires a valid JWT (including /api/auth/me)

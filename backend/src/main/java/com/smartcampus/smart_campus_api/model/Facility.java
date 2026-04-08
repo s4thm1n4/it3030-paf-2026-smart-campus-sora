@@ -1,25 +1,27 @@
 package com.smartcampus.smart_campus_api.model;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
-/**
- * MODULE A — Facilities & Assets Catalogue
- * Represents a bookable campus resource (lecture hall, lab, room, equipment).
- *
- * @author Member 1 (M1)
- */
 @Entity
 @Table(name = "facilities")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class Facility {
 
@@ -27,34 +29,26 @@ public class Facility {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Name is required")
     @Column(nullable = false)
     private String name;
 
-    @NotNull(message = "Type is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private FacilityType type;
 
-    private String description;
+    @Column
+    private Integer capacity;
 
-    @NotBlank(message = "Location is required")
-    @Column(nullable = false)
+    @Column
     private String location;
 
-    @Min(value = 1, message = "Capacity must be at least 1")
-    private int capacity;
+    @Column(name = "available_from")
+    private LocalTime availableFrom;
+
+    @Column(name = "available_to")
+    private LocalTime availableTo;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
-    private FacilityStatus status = FacilityStatus.ACTIVE;
-
-    private String imageUrl;
-
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    private FacilityStatus status;
 }

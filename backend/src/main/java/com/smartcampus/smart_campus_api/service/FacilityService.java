@@ -1,48 +1,110 @@
 package com.smartcampus.smart_campus_api.service;
 
+import com.smartcampus.smart_campus_api.dto.FacilityDTO;
+import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
+import com.smartcampus.smart_campus_api.mapper.FacilityMapper;
 import com.smartcampus.smart_campus_api.model.Facility;
-import com.smartcampus.smart_campus_api.model.FacilityStatus;
 import com.smartcampus.smart_campus_api.model.FacilityType;
 import com.smartcampus.smart_campus_api.repository.FacilityRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
+import java.util.stream.Stream;
 
 @Service
-@RequiredArgsConstructor
 public class FacilityService {
+
     private final FacilityRepository facilityRepository;
+    private final FacilityMapper facilityMapper;
 
-    public List<Facility> getAll() {
-        return facilityRepository.findAll();
+    public FacilityService(FacilityRepository facilityRepository, FacilityMapper facilityMapper) {
+        this.facilityRepository = facilityRepository;
+        this.facilityMapper = facilityMapper;
     }
 
-    public Facility getById(Long id) {
-        return facilityRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Facility not found"));
+    @Transactional
+    public FacilityDTO createFacility(FacilityDTO facilityDTO) {
+        Facility facility = facilityMapper.toEntity(facilityDTO);
+        Facility savedFacility = facilityRepository.save(facility);
+        return facilityMapper.toDto(savedFacility);
     }
 
-    public Facility create(Facility facility) {
-        return facilityRepository.save(facility);
+    public List<FacilityDTO> getAllFacilities() {
+        return facilityRepository.findAll()
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
     }
 
-    public Facility update(Long id, Facility updated) {
-        Facility facility = getById(id);
-        facility.setName(updated.getName());
-        facility.setType(updated.getType());
-        facility.setDescription(updated.getDescription());
-        facility.setLocation(updated.getLocation());
-        facility.setCapacity(updated.getCapacity());
-        facility.setStatus(updated.getStatus());
-        facility.setImageUrl(updated.getImageUrl());
-        return facilityRepository.save(facility);
+    public FacilityDTO getFacilityById(Long id) {
+        Facility facility = facilityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facility", "id", id));
+        return facilityMapper.toDto(facility);
     }
 
-    public void delete(Long id) {
-        facilityRepository.deleteById(id);
+    @Transactional
+    public FacilityDTO updateFacility(Long id, FacilityDTO facilityDTO) {
+        Facility existingFacility = facilityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facility", "id", id));
+
+        existingFacility.setName(facilityDTO.getName());
+        existingFacility.setType(facilityDTO.getType());
+        existingFacility.setCapacity(facilityDTO.getCapacity());
+        existingFacility.setLocation(facilityDTO.getLocation());
+        existingFacility.setAvailableFrom(facilityDTO.getAvailableFrom());
+        existingFacility.setAvailableTo(facilityDTO.getAvailableTo());
+        existingFacility.setStatus(facilityDTO.getStatus());
+
+        Facility updatedFacility = facilityRepository.save(existingFacility);
+        return facilityMapper.toDto(updatedFacility);
     }
 
-    public List<Facility> search(FacilityType type, String location, Integer minCapacity) {
-        return facilityRepository.searchFacilities(type, location, minCapacity);
+    @Transactional
+    public void deleteFacility(Long id) {
+        Facility facility = facilityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facility", "id", id));
+        facilityRepository.delete(facility);
+    }
+
+    public List<FacilityDTO> getFacilitiesByType(FacilityType type) {
+        return facilityRepository.findByType(type)
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
+    }
+
+    public List<FacilityDTO> getFacilitiesByCapacity(Integer capacity) {
+        return facilityRepository.findByCapacity(capacity)
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
+    }
+
+    public List<FacilityDTO> getFacilitiesByLocation(String location) {
+        return facilityRepository.findByLocationContainingIgnoreCase(location)
+                .stream()
+                .map(facilityMapper::toDto)
+                .toList();
+    }
+
+    public List<FacilityDTO> getFilteredFacilities(FacilityType type, Integer capacity, String location) {
+        Stream<Facility> facilities = facilityRepository.findAll().stream();
+
+        if (type != null) {
+            facilities = facilities.filter(facility -> facility.getType() == type);
+        }
+        if (capacity != null) {
+            facilities = facilities.filter(facility -> capacity.equals(facility.getCapacity()));
+        }
+        if (location != null && !location.isBlank()) {
+            facilities = facilities.filter(facility ->
+                    facility.getLocation() != null &&
+                    facility.getLocation().toLowerCase().contains(location.toLowerCase()));
+        }
+
+        return facilities
+                .map(facilityMapper::toDto)
+                .toList();
     }
 }
