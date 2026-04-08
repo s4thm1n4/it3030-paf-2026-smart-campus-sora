@@ -6,10 +6,7 @@ const ticketService = {
   getAll: () => api.get(ENDPOINT),
   getById: (id) => api.get(`${ENDPOINT}/${id}`),
   getMyTickets: () => api.get(`${ENDPOINT}/my`),
-  create: (formData) =>
-    api.post(ENDPOINT, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+  create: (data) => api.post(ENDPOINT, data),
   update: (id, data) => api.put(`${ENDPOINT}/${id}`, data),
   updateStatus: (id, status) => api.patch(`${ENDPOINT}/${id}/status`, { status }),
   assign: (id, technicianId) => api.patch(`${ENDPOINT}/${id}/assign`, { technicianId }),
