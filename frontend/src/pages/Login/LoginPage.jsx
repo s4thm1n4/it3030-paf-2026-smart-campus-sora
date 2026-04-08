@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -5,22 +6,57 @@ import toast from 'react-hot-toast';
 import Icon from '../../components/common/Icon';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, loading } = useAuth();
   const navigate = useNavigate();
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleSuccess = async (credentialResponse) => {
+    setLoginError('');
+    setLoggingIn(true);
     try {
+      console.log('[Login] Google credential received');
       const userData = await login(credentialResponse.credential);
+      console.log('[Login] Success:', userData);
       toast.success(`Welcome, ${userData.name}!`);
-      navigate('/');
+      // Use replace to prevent back-button returning to login
+      navigate('/', { replace: true });
+      // Fallback: if React navigate doesn't trigger (race condition), force it
+      setTimeout(() => {
+        if (window.location.pathname === '/login') {
+          window.location.href = '/';
+        }
+      }, 500);
     } catch (err) {
-      toast.error('Login failed. Please try again.');
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      const msg = data?.message || data?.error || JSON.stringify(data) || err?.message || 'Unknown error';
+      console.error('[Login] Failed - status:', status, 'data:', data);
+      setLoginError(`Error ${status ?? 'network'}: ${msg}`);
+      toast.error(String(msg));
+      setLoggingIn(false);
     }
   };
 
   const handleError = () => {
+    setLoginError('Google sign-in was cancelled or failed.');
     toast.error('Google sign-in was cancelled or failed.');
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-screen">
@@ -87,17 +123,31 @@ export default function LoginPage() {
           <div className="cell-border bg-surface-container p-6">
             <p className="label-caps text-outline text-[10px] mb-5">Authentication</p>
 
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleSuccess}
-                onError={handleError}
-                useOneTap={false}
-                shape="rectangular"
-                size="large"
-                text="signin_with"
-                theme="outline"
-              />
-            </div>
+            {/* Visible error message */}
+            {loginError && (
+              <div className="mb-4 p-3 border border-red-400 bg-red-50 text-red-700 text-xs font-mono rounded break-all">
+                ⚠ {loginError}
+              </div>
+            )}
+
+            {loggingIn ? (
+              <div className="flex flex-col items-center gap-2 py-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+                <span className="text-xs text-outline font-mono">Signing in...</span>
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleSuccess}
+                  onError={handleError}
+                  useOneTap={false}
+                  shape="rectangular"
+                  size="large"
+                  text="signin_with"
+                  theme="outline"
+                />
+              </div>
+            )}
 
             <div className="mt-5 flex items-center gap-2 justify-center text-outline">
               <Icon name="shield" className="text-sm" />
