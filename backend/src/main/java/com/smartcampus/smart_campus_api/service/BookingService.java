@@ -140,13 +140,17 @@ public class BookingService {
 
     /**
      * Cancel a booking.
-     * Only the user who requested it can cancel, while it is PENDING or APPROVED.
+     * The owner can cancel their own PENDING or APPROVED booking.
+     * Admin can cancel any PENDING or APPROVED booking.
      */
     @Transactional
     public Booking cancel(Long id, User user) {
         Booking booking = getById(id);
 
-        if (!booking.getRequestedBy().getId().equals(user.getId())) {
+        boolean isOwner = booking.getRequestedBy().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == com.smartcampus.smart_campus_api.model.Role.ADMIN;
+
+        if (!isOwner && !isAdmin) {
             throw new BadRequestException("You can only cancel your own bookings");
         }
 

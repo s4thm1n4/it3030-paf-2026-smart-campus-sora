@@ -56,6 +56,9 @@ export default function BookingsPage() {
   const [remarkAction, setRemarkAction] = useState(null); // 'approve' | 'reject'
   const [remarkText, setRemarkText] = useState('');
 
+  // Cancel confirmation state
+  const [cancelBookingId, setCancelBookingId] = useState(null);
+
   // Delete confirmation state
   const [deleteBookingId, setDeleteBookingId] = useState(null);
 
@@ -170,14 +173,17 @@ export default function BookingsPage() {
     }
   };
 
-  const handleCancel = async (id) => {
+  const handleCancel = async () => {
+    if (!cancelBookingId) return;
     try {
-      await bookingService.cancel(id);
+      await bookingService.cancel(cancelBookingId);
       toast.success('Booking cancelled');
+      setCancelBookingId(null);
       fetchBookings();
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to cancel booking';
       toast.error(msg);
+      setCancelBookingId(null);
     }
   };
 
@@ -380,8 +386,8 @@ export default function BookingsPage() {
         <div className="space-y-3">
           {filtered.map((booking) => {
             const statusCfg = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING;
-            const isOwn = booking.requestedBy?.id === user?.id;
-            const canCancel = isOwn && (booking.status === 'PENDING' || booking.status === 'APPROVED');
+            const isOwn = String(booking.requestedBy?.id) === String(user?.id);
+            const canCancel = (isOwn || isAdmin()) && (booking.status === 'PENDING' || booking.status === 'APPROVED');
             const canEdit = isOwn && booking.status === 'PENDING';
             const canDelete = isOwn && (booking.status === 'CANCELLED' || booking.status === 'REJECTED');
             const canAdminDelete = isAdmin();
@@ -478,10 +484,10 @@ export default function BookingsPage() {
                       </button>
                     )}
 
-                    {/* Cancel — own PENDING or APPROVED bookings */}
+                    {/* Cancel — own PENDING or APPROVED bookings (or admin) */}
                     {canCancel && (
                       <button
-                        onClick={() => handleCancel(booking.id)}
+                        onClick={() => setCancelBookingId(booking.id)}
                         className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
                       >
                         <Icon name="close" size={16} />
@@ -706,6 +712,37 @@ export default function BookingsPage() {
                 }`}
               >
                 {remarkAction === 'approve' ? 'Approve' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {cancelBookingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-surface-container-lowest border border-cell-border rounded-none shadow-xl w-full max-w-sm mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-yellow-500/10 rounded-full">
+                <Icon name="cancel" size={24} className="text-yellow-600" />
+              </div>
+              <h2 className="text-lg font-bold font-display text-on-surface">Cancel Booking</h2>
+            </div>
+            <p className="text-sm text-on-surface-variant mb-6">
+              Are you sure you want to cancel this booking? The time slot will become available for others.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelBookingId(null)}
+                className="px-4 py-2 text-sm font-semibold text-on-surface-variant bg-surface border border-cell-border rounded-none hover:bg-surface-container-lowest transition-colors"
+              >
+                Keep Booking
+              </button>
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 text-sm font-semibold text-white bg-yellow-600 rounded-none hover:bg-yellow-700 transition-colors"
+              >
+                Yes, Cancel It
               </button>
             </div>
           </div>
