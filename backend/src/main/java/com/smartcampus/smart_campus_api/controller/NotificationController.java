@@ -112,6 +112,7 @@ public class NotificationController {
      * Dev/demo only — useful for viva demonstrations.
      */
     @PostMapping("/seed")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> seed(@AuthenticationPrincipal User user) {
         Long id = user.getId();
 
