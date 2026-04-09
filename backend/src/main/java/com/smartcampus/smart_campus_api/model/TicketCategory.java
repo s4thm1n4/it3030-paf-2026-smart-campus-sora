@@ -1,12 +1,17 @@
 package com.smartcampus.smart_campus_api.model;
 
 public enum TicketCategory {
-    ELECTRICAL,
-    PLUMBING,
-    HVAC,
     IT_NETWORK,
-    FURNITURE,
-    CLEANING,
+    ELECTRICAL,
+    LECTURE_FACILITIES,
+    LAB_EQUIPMENT,
+    LIBRARY,
     SECURITY,
+    STUDENT_SERVICES,
+    CAFETERIA,
+    TRANSPORT,
+    CLEANING,
+    ACADEMIC_COMPLAINT,
+    ADMINISTRATION,
     OTHER
 }
