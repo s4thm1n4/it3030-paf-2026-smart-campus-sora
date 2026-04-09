@@ -24,19 +24,22 @@ public class TicketService {
     private final UserRepository userRepository;
     private final FacilityRepository facilityRepository;
     private final FileStorageService fileStorageService;
+    private final NotificationService notificationService;
 
     public TicketService(TicketRepository ticketRepository,
                          CommentRepository commentRepository,
                          TicketStatusHistoryRepository ticketStatusHistoryRepository,
                          UserRepository userRepository,
                          FacilityRepository facilityRepository,
-                         FileStorageService fileStorageService) {
+                         FileStorageService fileStorageService,
+                         NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.commentRepository = commentRepository;
         this.ticketStatusHistoryRepository = ticketStatusHistoryRepository;
         this.userRepository = userRepository;
         this.facilityRepository = facilityRepository;
         this.fileStorageService = fileStorageService;
+        this.notificationService = notificationService;
     }
 
     public TicketResponse create(TicketCreateRequest request, MultipartFile[] images, User creator) {
@@ -66,6 +69,14 @@ public class TicketService {
 
             Ticket saved = ticketRepository.save(ticket);
             recordHistory(saved, null, TicketStatus.OPEN, creator, "Ticket created");
+
+            notificationService.notifyAllAdmins(
+                    "New Ticket Submitted",
+                    creator.getName() + " submitted a new ticket: " + saved.getTitle(),
+                    NotificationType.TICKET_CREATED,
+                    "/tickets/" + saved.getId()
+            );
+
             return toResponse(saved.getId(), true);
         } catch (Exception e) {
             // Log full stack trace to help diagnose 500 errors during ticket creation
@@ -158,6 +169,17 @@ public class TicketService {
             ticket.setResolutionNotes(null);
             ticketRepository.save(ticket);
             recordHistory(ticket, prev, TicketStatus.REJECTED, user, reason.trim());
+
+            if (!user.getId().equals(ticket.getCreatedBy().getId())) {
+                notificationService.createNotification(
+                        ticket.getCreatedBy().getId(),
+                        "Ticket Rejected",
+                        "Your ticket \"" + ticket.getTitle() + "\" has been rejected. Reason: " + reason.trim(),
+                        NotificationType.TICKET_STATUS_CHANGED,
+                        "/tickets/" + ticket.getId()
+                );
+            }
+
             return toResponse(ticket.getId(), true);
         }
 
@@ -178,6 +200,17 @@ public class TicketService {
         ticketRepository.save(ticket);
         String note = next == TicketStatus.RESOLVED ? blankToNull(request.resolutionNotes()) : null;
         recordHistory(ticket, previous, next, user, note);
+
+        if (!user.getId().equals(ticket.getCreatedBy().getId())) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy().getId(),
+                    "Ticket Status Updated",
+                    "Your ticket \"" + ticket.getTitle() + "\" status changed to " + next.name(),
+                    NotificationType.TICKET_STATUS_CHANGED,
+                    "/tickets/" + ticket.getId()
+            );
+        }
+
         return toResponse(ticket.getId(), true);
     }
 
@@ -194,6 +227,15 @@ public class TicketService {
 
         ticket.setAssignedTo(technician);
         ticketRepository.save(ticket);
+
+        notificationService.createNotification(
+                technician.getId(),
+                "Ticket Assigned to You",
+                "You have been assigned to ticket: " + ticket.getTitle(),
+                NotificationType.TICKET_ASSIGNED,
+                "/tickets/" + ticket.getId()
+        );
+
         return toResponse(ticket.getId(), true);
     }
 
@@ -228,6 +270,31 @@ public class TicketService {
                 .author(author)
                 .build();
         comment = commentRepository.save(comment);
+
+        // Notify ticket creator (unless they are the commenter)
+        if (!author.getId().equals(ticket.getCreatedBy().getId())) {
+            notificationService.createNotification(
+                    ticket.getCreatedBy().getId(),
+                    "New Comment",
+                    author.getName() + " commented on your ticket: " + ticket.getTitle(),
+                    NotificationType.NEW_COMMENT,
+                    "/tickets/" + ticket.getId()
+            );
+        }
+
+        // Notify assigned technician (unless they are the commenter or the creator)
+        if (ticket.getAssignedTo() != null
+                && !author.getId().equals(ticket.getAssignedTo().getId())
+                && !ticket.getAssignedTo().getId().equals(ticket.getCreatedBy().getId())) {
+            notificationService.createNotification(
+                    ticket.getAssignedTo().getId(),
+                    "New Comment",
+                    author.getName() + " commented on ticket: " + ticket.getTitle(),
+                    NotificationType.NEW_COMMENT,
+                    "/tickets/" + ticket.getId()
+            );
+        }
+
         return toCommentResponse(comment);
     }
 
