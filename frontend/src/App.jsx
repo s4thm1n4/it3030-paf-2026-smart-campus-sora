@@ -8,6 +8,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import HomePage from './pages/Home/HomePage';
 import LoginPage from './pages/Login/LoginPage';
 import FacilitiesPage from './pages/Facilities/FacilitiesPage';
+import FacilityDetailPage from './pages/Facilities/FacilityDetailPage';
 import BookingsPage from './pages/Bookings/BookingsPage';
 import TicketsPage from './pages/Tickets/TicketsPage';
 import TicketDetailPage from './pages/Tickets/TicketDetailPage';
@@ -32,6 +33,10 @@ export default function App() {
 
             <Route path="/facilities" element={
               <ProtectedRoute><FacilitiesPage /></ProtectedRoute>
+            } />
+
+            <Route path="/facilities/:id" element={
+              <ProtectedRoute><FacilityDetailPage /></ProtectedRoute>
             } />
 
             <Route path="/bookings" element={
