@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import {
@@ -7,6 +7,7 @@ import {
   HiOutlineMagnifyingGlass,
   HiOutlineTicket,
   HiOutlineTrash,
+  HiOutlineChartBarSquare,
 } from 'react-icons/hi2';
 import ticketService from '../../services/ticketService';
 import facilityService from '../../services/facilityService';
@@ -23,6 +24,8 @@ import PriorityBadge from '../../components/tickets/PriorityBadge';
 import TicketForm from '../../components/tickets/TicketForm';
 
 const PRIORITY_ORDER = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+const STATUS_ORDER = { OPEN: 0, IN_PROGRESS: 1, RESOLVED: 2, CLOSED: 3, REJECTED: 4 };
+const SORT_DEFAULT_DIR = { title: 'asc', category: 'asc', priority: 'asc', status: 'asc', updatedAt: 'desc' };
 
 function StatCard({ label, value, color }) {
   return (
@@ -30,6 +33,23 @@ function StatCard({ label, value, color }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
       <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
     </div>
+  );
+}
+
+function SortableHeader({ field, children, sortField, sortDir, onSort, className = '' }) {
+  const active = sortField === field;
+  return (
+    <th
+      onClick={() => onSort(field)}
+      className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide cursor-pointer select-none group ${active ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'} ${className}`}
+    >
+      <span className="inline-flex items-center gap-1">
+        {children}
+        <span className={active ? 'text-blue-500' : 'text-gray-300 group-hover:text-gray-400'}>
+          {active ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+        </span>
+      </span>
+    </th>
   );
 }
 
@@ -52,6 +72,19 @@ export default function TicketsPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+
+  // Column sort
+  const [sortField, setSortField] = useState('updatedAt');
+  const [sortDir, setSortDir] = useState('desc');
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir(SORT_DEFAULT_DIR[field] ?? 'asc');
+    }
+  };
 
   useEffect(() => {
     facilityService
@@ -95,11 +128,21 @@ export default function TicketsPage() {
         return true;
       })
       .sort((a, b) => {
-        const pd = (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9);
-        if (pd !== 0) return pd;
-        return new Date(b.updatedAt ?? 0) - new Date(a.updatedAt ?? 0);
+        let cmp = 0;
+        if (sortField === 'title') {
+          cmp = (a.title ?? '').localeCompare(b.title ?? '');
+        } else if (sortField === 'category') {
+          cmp = categoryLabel(a.category).localeCompare(categoryLabel(b.category));
+        } else if (sortField === 'priority') {
+          cmp = (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9);
+        } else if (sortField === 'status') {
+          cmp = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+        } else {
+          cmp = new Date(a.updatedAt ?? 0) - new Date(b.updatedAt ?? 0);
+        }
+        return sortDir === 'asc' ? cmp : -cmp;
       });
-  }, [tickets, search, filterStatus, filterPriority, filterCategory]);
+  }, [tickets, search, filterStatus, filterPriority, filterCategory, sortField, sortDir]);
 
   // Stats
   const stats = useMemo(() => {
@@ -159,14 +202,27 @@ export default function TicketsPage() {
             Report campus incidents, track maintenance work, and collaborate with operations staff.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          <HiOutlinePlusCircle className="h-5 w-5" />
-          New ticket
-        </button>
+        <div className="flex items-center gap-2">
+          {user?.role === 'ADMIN' && (
+            <Link
+              to="/admin"
+              className="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <HiOutlineChartBarSquare className="h-5 w-5" />
+              Ticket Dashboard
+            </Link>
+          )}
+          {user?.role !== 'ADMIN' && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <HiOutlinePlusCircle className="h-5 w-5" />
+              New ticket
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats row */}
@@ -302,21 +358,21 @@ export default function TicketsPage() {
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     #
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <SortableHeader field="title" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
                     Ticket
-                  </th>
-                  <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  </SortableHeader>
+                  <SortableHeader field="category" sortField={sortField} sortDir={sortDir} onSort={handleSort} className="hidden sm:table-cell">
                     Category
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  </SortableHeader>
+                  <SortableHeader field="priority" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
                     Priority
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  </SortableHeader>
+                  <SortableHeader field="status" sortField={sortField} sortDir={sortDir} onSort={handleSort}>
                     Status
-                  </th>
-                  <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  </SortableHeader>
+                  <SortableHeader field="updatedAt" sortField={sortField} sortDir={sortDir} onSort={handleSort} className="hidden md:table-cell">
                     Updated
-                  </th>
+                  </SortableHeader>
                   {isStaff() && tab === 'queue' && (
                     <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                       Reporter

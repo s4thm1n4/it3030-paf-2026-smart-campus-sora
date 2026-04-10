@@ -18,10 +18,9 @@ import ticketService from '../../services/ticketService';
 import facilityService from '../../services/facilityService';
 import { useAuth } from '../../context/AuthContext';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { categoryLabel, priorityLabel, statusLabel } from '../../constants/tickets';
+import { categoryLabel, priorityLabel, statusLabel, TICKET_CATEGORIES, TICKET_PRIORITIES } from '../../constants/tickets';
 import StatusBadge from '../../components/tickets/StatusBadge';
 import PriorityBadge from '../../components/tickets/PriorityBadge';
-import TicketForm from '../../components/tickets/TicketForm';
 import TicketWorkflowPanel from '../../components/tickets/TicketWorkflowPanel';
 import TicketCommentThread from '../../components/tickets/TicketCommentThread';
 
@@ -97,7 +96,8 @@ export default function TicketDetailPage() {
   const { user } = useAuth();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showEdit, setShowEdit] = useState(false);
+  const [adminEdit, setAdminEdit] = useState(null);
+  const [adminSaving, setAdminSaving] = useState(false);
   const [facilities, setFacilities] = useState([]);
 
   const load = async () => {
@@ -121,11 +121,44 @@ export default function TicketDetailPage() {
   const isAdmin = user?.role === 'ADMIN';
   const isOwner = ticket && user?.id === ticket.createdBy?.id;
 
-  // Only admins can edit
+  // Only admins can edit ticket metadata
   const canEdit =
     ticket &&
     isAdmin &&
     (ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS');
+
+  const openAdminEdit = () => {
+    setAdminEdit({
+      category: ticket.category ?? 'OTHER',
+      priority: ticket.priority ?? 'MEDIUM',
+      location: ticket.location ?? '',
+      facilityId: ticket.facility?.id != null ? String(ticket.facility.id) : '',
+    });
+  };
+
+  const handleAdminSave = async () => {
+    setAdminSaving(true);
+    try {
+      const { data } = await ticketService.update(ticket.id, {
+        title: ticket.title,
+        description: ticket.description,
+        category: adminEdit.category,
+        priority: adminEdit.priority,
+        contactName: ticket.contactName || null,
+        contactEmail: ticket.contactEmail || null,
+        contactPhone: ticket.contactPhone || null,
+        location: adminEdit.location.trim() || null,
+        facilityId: adminEdit.facilityId ? Number(adminEdit.facilityId) : null,
+      });
+      toast.success('Ticket updated');
+      setTicket(data);
+      setAdminEdit(null);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e));
+    } finally {
+      setAdminSaving(false);
+    }
+  };
 
   // Users cancel their own OPEN tickets; admins can delete any
   const canCancel = ticket && isOwner && ticket.status === 'OPEN';
@@ -195,7 +228,7 @@ export default function TicketDetailPage() {
           {canEdit && (
             <button
               type="button"
-              onClick={() => setShowEdit(true)}
+              onClick={openAdminEdit}
               className="rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50"
             >
               Edit
@@ -357,31 +390,99 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
-      {/* Edit modal */}
-      {showEdit && (
+      {/* Admin edit modal */}
+      {adminEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
-          <div className="my-8 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="my-8 w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Edit ticket</h2>
-                <p className="text-sm text-gray-500">Update ticket details below.</p>
+                <h2 className="text-lg font-semibold text-gray-900">Edit ticket fields</h2>
+                <p className="text-sm text-gray-500">Correct category, priority, location or facility if the reporter entered wrong details.</p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowEdit(false)}
+                onClick={() => setAdminEdit(null)}
                 className="text-gray-400 hover:text-gray-600 text-xl leading-none"
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
-            <TicketForm
-              mode="edit"
-              ticket={ticket}
-              facilities={facilities}
-              onCancel={() => setShowEdit(false)}
-              onSuccess={(updated) => { setTicket(updated); setShowEdit(false); }}
-            />
+
+            <div className="space-y-4">
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={adminEdit.category}
+                  onChange={(e) => setAdminEdit((prev) => ({ ...prev, category: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {TICKET_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                <select
+                  value={adminEdit.priority}
+                  onChange={(e) => setAdminEdit((prev) => ({ ...prev, priority: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {TICKET_PRIORITIES.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location / area</label>
+                <input
+                  type="text"
+                  value={adminEdit.location}
+                  onChange={(e) => setAdminEdit((prev) => ({ ...prev, location: e.target.value }))}
+                  placeholder="Building, floor, room, outdoor area"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Facility */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Facility</label>
+                <select
+                  value={adminEdit.facilityId}
+                  onChange={(e) => setAdminEdit((prev) => ({ ...prev, facilityId: e.target.value }))}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">— None —</option>
+                  {facilities.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name} — {f.location}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setAdminEdit(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={adminSaving}
+                onClick={handleAdminSave}
+                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-60"
+              >
+                {adminSaving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
           </div>
         </div>
       )}

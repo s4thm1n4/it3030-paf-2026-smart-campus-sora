@@ -46,6 +46,29 @@ const normalizeTimeInput = (time) => {
   return String(time).slice(0, 5);
 };
 
+const validateFacilityForm = (form) => {
+  const name = form.name.trim();
+  const location = form.location.trim();
+
+  if (!name) return 'Name is required';
+  if (name.length < 3) return 'Name must be at least 3 characters';
+
+  if (!location) return 'Location is required';
+
+  if (form.capacity !== '') {
+    const capacity = Number(form.capacity);
+    if (!Number.isFinite(capacity) || capacity <= 0) {
+      return 'Capacity must be a positive number';
+    }
+  }
+
+  if (form.availableFrom && form.availableTo && form.availableFrom >= form.availableTo) {
+    return 'Available From must be before Available To';
+  }
+
+  return null;
+};
+
 export default function FacilitiesPage() {
   const { isAdmin } = useAuth();
   const [facilities, setFacilities] = useState([]);
@@ -120,14 +143,19 @@ export default function FacilitiesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.location.trim()) {
-      toast.error('Name and Location are required');
+
+    const validationError = validateFacilityForm(form);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
+
     try {
       setSubmitting(true);
       const payload = {
         ...form,
+        name: form.name.trim(),
+        location: form.location.trim(),
         capacity: form.capacity === '' ? null : Number(form.capacity),
         availableFrom: form.availableFrom || null,
         availableTo: form.availableTo || null,
@@ -283,6 +311,7 @@ export default function FacilitiesPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+                  minLength={3}
                   required
                 />
               </div>
@@ -326,7 +355,7 @@ export default function FacilitiesPage() {
                 <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Capacity</label>
                 <input
                   type="number"
-                  min="0"
+                  min="1"
                   value={form.capacity}
                   onChange={(e) => setForm({ ...form, capacity: e.target.value })}
                   className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
@@ -487,7 +516,9 @@ export default function FacilitiesPage() {
               <span className="col-span-2 label-caps text-[10px] text-outline">STATUS</span>
               <span className="col-span-2 label-caps text-[10px] text-outline">LOCATION</span>
               <span className="col-span-1 label-caps text-[10px] text-outline">CAPACITY</span>
-              <span className="col-span-2 label-caps text-[10px] text-outline text-right">ACTIONS</span>
+              {isAdmin() && (
+                <span className="col-span-2 label-caps text-[10px] text-outline text-right">ACTIONS</span>
+              )}
             </div>
             {filtered.map((facility) => (
               <div
