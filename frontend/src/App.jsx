@@ -13,6 +13,7 @@ import TicketsPage from './pages/Tickets/TicketsPage';
 import TicketDetailPage from './pages/Tickets/TicketDetailPage';
 import NotificationsPage from './pages/Notifications/NotificationsPage';
 import AdminPage from './pages/Admin/AdminPage';
+import UserManagementPage from './pages/Admin/UserManagementPage';
 
 export default function App() {
   return (
@@ -52,6 +53,12 @@ export default function App() {
             <Route path="/admin" element={
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AdminPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/admin/users" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <UserManagementPage />
               </ProtectedRoute>
             } />
           </Route>
