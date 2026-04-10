@@ -12,9 +12,6 @@ const navItems = [
   { path: '/notifications', label: 'NOTIFICATIONS', icon: 'notifications' },
 ];
 
-const adminNav = [
-  { path: '/admin', label: 'ADMIN PANEL', icon: 'admin_panel_settings' },
-];
 
 export default function MainLayout() {
   const { user, logout, isAdmin, loading } = useAuth();
@@ -118,34 +115,6 @@ export default function MainLayout() {
             </Link>
           ))}
 
-          {/* Admin section */}
-          {isAdmin() && (
-            <>
-              <div className="my-3 border-t border-sidebar-border" />
-              <p className="label-caps mb-2 px-3 text-[10px] text-sidebar-text">
-                ADMIN
-              </p>
-              {adminNav.map(({ path, label, icon }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  className={`group flex items-center gap-3 px-3 py-2.5 text-xs font-medium transition-colors ${
-                    isActive(path)
-                      ? 'bg-sidebar-active text-sidebar-text-active border-l-2 border-primary'
-                      : 'text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-active border-l-2 border-transparent'
-                  }`}
-                >
-                  <Icon
-                    name={icon}
-                    size={18}
-                    filled={isActive(path)}
-                    className={isActive(path) ? 'text-accent' : 'text-sidebar-text group-hover:text-sidebar-text-active'}
-                  />
-                  <span className="tracking-wider">{label}</span>
-                </Link>
-              ))}
-            </>
-          )}
         </nav>
 
         {/* Sidebar Footer — User */}

@@ -1,4 +1,6 @@
 HELP.md
+# Local config (copy from application.properties.example)
+src/main/resources/application.properties
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

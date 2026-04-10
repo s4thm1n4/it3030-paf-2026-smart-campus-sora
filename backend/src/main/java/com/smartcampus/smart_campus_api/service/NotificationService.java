@@ -3,6 +3,7 @@ package com.smartcampus.smart_campus_api.service;
 import com.smartcampus.smart_campus_api.exception.ResourceNotFoundException;
 import com.smartcampus.smart_campus_api.model.Notification;
 import com.smartcampus.smart_campus_api.model.NotificationType;
+import com.smartcampus.smart_campus_api.model.Role;
 import com.smartcampus.smart_campus_api.model.User;
 import com.smartcampus.smart_campus_api.repository.NotificationRepository;
 import com.smartcampus.smart_campus_api.repository.UserRepository;
@@ -71,6 +72,19 @@ public class NotificationService {
                 .build();
 
         return notificationRepository.save(notification);
+    }
+
+    /**
+     * Notify all ADMIN users. Used when an event needs admin attention
+     * (e.g. new booking pending approval, new ticket submitted).
+     */
+    @Transactional
+    public void notifyAllAdmins(String title, String message,
+                                NotificationType type, String referenceUrl) {
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+        for (User admin : admins) {
+            createNotification(admin.getId(), title, message, type, referenceUrl);
+        }
     }
 
     /** Mark a single notification as read. Verifies the caller owns it. */

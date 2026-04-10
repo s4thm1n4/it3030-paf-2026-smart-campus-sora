@@ -7,51 +7,66 @@ import ViewToggle from '../../components/common/ViewToggle';
 import StatusBadge from '../../components/common/StatusBadge';
 
 const FACILITY_TYPES = [
-  'LECTURE_HALL',
-  'LABORATORY',
-  'MEETING_ROOM',
-  'AUDITORIUM',
+  'ROOM',
+  'LAB',
   'EQUIPMENT',
-  'SPORTS_FACILITY',
-  'OTHER',
 ];
 
-const FACILITY_STATUSES = ['ACTIVE', 'OUT_OF_SERVICE', 'UNDER_MAINTENANCE'];
+const FACILITY_STATUSES = ['ACTIVE', 'OUT_OF_SERVICE'];
 
 const TYPE_COLORS = {
-  LECTURE_HALL: 'bg-primary-container text-primary',
-  LABORATORY: 'bg-accent-container text-accent',
-  MEETING_ROOM: 'bg-success-container text-success',
-  AUDITORIUM: 'bg-warning-container text-on-warning',
+  ROOM: 'bg-primary-container text-primary',
+  LAB: 'bg-accent-container text-accent',
   EQUIPMENT: 'bg-accent-container text-accent-dim',
-  SPORTS_FACILITY: 'bg-success-container text-success',
-  OTHER: 'bg-surface-container text-outline',
 };
 
 const STATUS_LABELS = {
   ACTIVE: 'Active',
   OUT_OF_SERVICE: 'Out of Service',
-  UNDER_MAINTENANCE: 'Under Maintenance',
 };
 
 const TYPE_LABELS = {
-  LECTURE_HALL: 'Lecture Hall',
-  LABORATORY: 'Laboratory',
-  MEETING_ROOM: 'Meeting Room',
-  AUDITORIUM: 'Auditorium',
+  ROOM: 'Room',
+  LAB: 'Lab',
   EQUIPMENT: 'Equipment',
-  SPORTS_FACILITY: 'Sports Facility',
-  OTHER: 'Other',
 };
 
 const EMPTY_FORM = {
   name: '',
-  type: 'LECTURE_HALL',
-  description: '',
+  type: 'ROOM',
   location: '',
-  capacity: 1,
+  capacity: '',
+  availableFrom: '',
+  availableTo: '',
   status: 'ACTIVE',
-  imageUrl: '',
+};
+
+const normalizeTimeInput = (time) => {
+  if (!time) return '';
+  return String(time).slice(0, 5);
+};
+
+const validateFacilityForm = (form) => {
+  const name = form.name.trim();
+  const location = form.location.trim();
+
+  if (!name) return 'Name is required';
+  if (name.length < 3) return 'Name must be at least 3 characters';
+
+  if (!location) return 'Location is required';
+
+  if (form.capacity !== '') {
+    const capacity = Number(form.capacity);
+    if (!Number.isFinite(capacity) || capacity <= 0) {
+      return 'Capacity must be a positive number';
+    }
+  }
+
+  if (form.availableFrom && form.availableTo && form.availableFrom >= form.availableTo) {
+    return 'Available From must be before Available To';
+  }
+
+  return null;
 };
 
 export default function FacilitiesPage() {
@@ -60,6 +75,8 @@ export default function FacilitiesPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterCapacity, setFilterCapacity] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -71,14 +88,19 @@ export default function FacilitiesPage() {
   const fetchFacilities = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await facilityService.getAll();
+      const params = {};
+      if (filterType) params.type = filterType;
+      if (filterCapacity !== '') params.capacity = Number(filterCapacity);
+      if (filterLocation.trim()) params.location = filterLocation.trim();
+
+      const res = await facilityService.getAll(params);
       setFacilities(res.data);
     } catch {
       toast.error('Failed to load facilities');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterType, filterCapacity, filterLocation]);
 
   useEffect(() => {
     fetchFacilities();
@@ -88,10 +110,9 @@ export default function FacilitiesPage() {
     const matchesSearch =
       !searchQuery ||
       f.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      f.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = !filterType || f.type === filterType;
+      (f.location || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = !filterStatus || f.status === filterStatus;
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesStatus;
   });
 
   const openCreateForm = () => {
@@ -105,11 +126,11 @@ export default function FacilitiesPage() {
     setForm({
       name: facility.name,
       type: facility.type,
-      description: facility.description || '',
-      location: facility.location,
-      capacity: facility.capacity,
+      location: facility.location || '',
+      capacity: facility.capacity ?? '',
+      availableFrom: normalizeTimeInput(facility.availableFrom),
+      availableTo: normalizeTimeInput(facility.availableTo),
       status: facility.status,
-      imageUrl: facility.imageUrl || '',
     });
     setShowForm(true);
   };
@@ -122,13 +143,23 @@ export default function FacilitiesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.location.trim()) {
-      toast.error('Name and Location are required');
+
+    const validationError = validateFacilityForm(form);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
+
     try {
       setSubmitting(true);
-      const payload = { ...form, capacity: Number(form.capacity) };
+      const payload = {
+        ...form,
+        name: form.name.trim(),
+        location: form.location.trim(),
+        capacity: form.capacity === '' ? null : Number(form.capacity),
+        availableFrom: form.availableFrom || null,
+        availableTo: form.availableTo || null,
+      };
       if (editingId) {
         const res = await facilityService.update(editingId, payload);
         setFacilities((prev) =>
@@ -219,6 +250,21 @@ export default function FacilitiesPage() {
               <option key={t} value={t}>{TYPE_LABELS[t]}</option>
             ))}
           </select>
+          <input
+            type="number"
+            min="0"
+            placeholder="Capacity"
+            value={filterCapacity}
+            onChange={(e) => setFilterCapacity(e.target.value)}
+            className="w-28 px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+          />
+          <input
+            type="text"
+            placeholder="Location"
+            value={filterLocation}
+            onChange={(e) => setFilterLocation(e.target.value)}
+            className="w-40 px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+          />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -229,6 +275,19 @@ export default function FacilitiesPage() {
               <option key={s} value={s}>{STATUS_LABELS[s]}</option>
             ))}
           </select>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterType('');
+              setFilterCapacity('');
+              setFilterLocation('');
+              setFilterStatus('');
+              setSearchQuery('');
+            }}
+            className="px-3 py-2 border border-outline-variant text-xs font-medium hover:bg-surface-container transition-colors"
+          >
+            Reset
+          </button>
         </div>
       </div>
 
@@ -252,6 +311,7 @@ export default function FacilitiesPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+                  minLength={3}
                   required
                 />
               </div>
@@ -301,24 +361,25 @@ export default function FacilitiesPage() {
                   className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Description</label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Image URL</label>
-                <input
-                  type="text"
-                  value={form.imageUrl}
-                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Available From</label>
+                  <input
+                    type="time"
+                    value={form.availableFrom}
+                    onChange={(e) => setForm({ ...form, availableFrom: e.target.value })}
+                    className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium font-display text-on-surface-variant mb-1 uppercase label-caps">Available To</label>
+                  <input
+                    type="time"
+                    value={form.availableTo}
+                    onChange={(e) => setForm({ ...form, availableTo: e.target.value })}
+                    className="w-full px-3 py-2 border border-outline-variant rounded-none bg-surface-container-lowest text-on-surface text-sm font-sans focus:outline-none focus:border-primary transition-colors"
+                  />
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
@@ -417,7 +478,7 @@ export default function FacilitiesPage() {
 
                 {/* Badges */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono ${TYPE_COLORS[facility.type] || TYPE_COLORS.OTHER}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono ${TYPE_COLORS[facility.type] || 'bg-surface-container text-outline'}`}>
                     {TYPE_LABELS[facility.type] || facility.type}
                   </span>
                   <StatusBadge status={facility.status} type="facility" />
@@ -435,12 +496,11 @@ export default function FacilitiesPage() {
                   </div>
                 </div>
 
-                {/* Description */}
-                {facility.description && (
-                  <p className="text-sm text-outline line-clamp-2">
-                    {facility.description}
-                  </p>
-                )}
+                <p className="text-xs text-outline mt-1">
+                  Availability: {facility.availableFrom && facility.availableTo
+                    ? `${normalizeTimeInput(facility.availableFrom)} - ${normalizeTimeInput(facility.availableTo)}`
+                    : 'Not set'}
+                </p>
               </div>
             ))}
           </div>
@@ -456,7 +516,9 @@ export default function FacilitiesPage() {
               <span className="col-span-2 label-caps text-[10px] text-outline">STATUS</span>
               <span className="col-span-2 label-caps text-[10px] text-outline">LOCATION</span>
               <span className="col-span-1 label-caps text-[10px] text-outline">CAPACITY</span>
-              <span className="col-span-2 label-caps text-[10px] text-outline text-right">ACTIONS</span>
+              {isAdmin() && (
+                <span className="col-span-2 label-caps text-[10px] text-outline text-right">ACTIONS</span>
+              )}
             </div>
             {filtered.map((facility) => (
               <div
@@ -465,12 +527,14 @@ export default function FacilitiesPage() {
               >
                 <div className="col-span-3">
                   <p className="text-sm font-semibold font-display text-on-surface">{facility.name}</p>
-                  {facility.description && (
-                    <p className="text-xs text-outline truncate mt-0.5">{facility.description}</p>
-                  )}
+                  <p className="text-xs text-outline truncate mt-0.5">
+                    Availability: {facility.availableFrom && facility.availableTo
+                      ? `${normalizeTimeInput(facility.availableFrom)} - ${normalizeTimeInput(facility.availableTo)}`
+                      : 'Not set'}
+                  </p>
                 </div>
                 <div className="col-span-2">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium font-mono ${TYPE_COLORS[facility.type] || TYPE_COLORS.OTHER}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium font-mono ${TYPE_COLORS[facility.type] || 'bg-surface-container text-outline'}`}>
                     {TYPE_LABELS[facility.type] || facility.type}
                   </span>
                 </div>

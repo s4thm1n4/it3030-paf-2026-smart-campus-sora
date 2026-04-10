@@ -90,7 +90,16 @@ public class BookingService {
         booking.setRequestedBy(user);
         booking.setStatus(BookingStatus.PENDING);
 
-        return bookingRepository.save(booking);
+        Booking saved = bookingRepository.save(booking);
+
+        notificationService.notifyAllAdmins(
+                "New Booking Request",
+                user.getName() + " requested a booking for " + facility.getName() + " on " + booking.getBookingDate(),
+                NotificationType.BOOKING_CREATED,
+                "/bookings"
+        );
+
+        return saved;
     }
 
     /**
@@ -157,10 +166,9 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         Booking saved = bookingRepository.save(booking);
 
-        notificationService.createNotification(
-                booking.getRequestedBy().getId(),
+        notificationService.notifyAllAdmins(
                 "Booking Cancelled",
-                "Your booking for " + booking.getFacility().getName() + " on " + booking.getBookingDate() + " has been cancelled.",
+                user.getName() + " cancelled their booking for " + booking.getFacility().getName() + " on " + booking.getBookingDate(),
                 NotificationType.BOOKING_CANCELLED,
                 "/bookings"
         );

@@ -33,8 +33,8 @@ export default function BookingsPage() {
   const [facilities, setFacilities] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // UI state
-  const [tab, setTab] = useState('my');           // 'my' | 'all'
+  // UI state — admin defaults to 'all' so they see incoming requests immediately
+  const [tab, setTab] = useState(isAdmin() ? 'all' : 'my');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showForm, setShowForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null); // null = create, object = edit
