@@ -59,6 +59,6 @@ public class FacilityController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteFacility(@PathVariable Long id) {
         facilityService.deleteFacility(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }
