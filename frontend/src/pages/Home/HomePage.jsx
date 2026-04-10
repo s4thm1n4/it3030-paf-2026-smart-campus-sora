@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useAuth } from '../../context/AuthContext';
@@ -8,47 +7,63 @@ import facilityService from '../../services/facilityService';
 import bookingService from '../../services/bookingService';
 import ticketService from '../../services/ticketService';
 import notificationService from '../../services/notificationService';
+import adminService from '../../services/adminService';
 import Icon from '../../components/common/Icon';
+import { StatusDonut, StatusBarChart } from './DashboardCharts';
+import {
+  computeBookingStats,
+  computeTicketStats,
+  computePriorityStats,
+  computeCategoryStats,
+  computeFacilityTypeStats,
+  computeRoleStats,
+} from './dashboardUtils';
 
 dayjs.extend(relativeTime);
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const admin = isAdmin();
+
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    facilities: 0,
-    bookings: 0,
-    tickets: 0,
-    unreadNotifications: 0,
-  });
+  const [facilities, setFacilities] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Use allSettled so one failing call doesn't kill the whole dashboard
-        const results = await Promise.allSettled([
+        const calls = [
           facilityService.getAll(),
-          bookingService.getMyBookings(),
-          ticketService.getMyTickets(),
+          admin ? bookingService.getAll() : bookingService.getMyBookings(),
+          admin ? ticketService.getAll() : ticketService.getMyTickets(),
           notificationService.getUnreadCount(),
           notificationService.getAll(),
-        ]);
+        ];
+        if (admin) calls.push(adminService.getUsers());
 
-        const [facilitiesRes, bookingsRes, ticketsRes, unreadCountRes, notificationsRes] = results;
+        const results = await Promise.allSettled(calls);
+        const [facilitiesRes, bookingsRes, ticketsRes, unreadRes, notifsRes] = results;
+        const usersRes = admin ? results[5] : null;
 
-        setStats({
-          facilities: facilitiesRes.status === 'fulfilled' ? (facilitiesRes.value.data?.length ?? 0) : 0,
-          bookings: bookingsRes.status === 'fulfilled' ? (bookingsRes.value.data?.length ?? 0) : 0,
-          tickets: ticketsRes.status === 'fulfilled' ? (ticketsRes.value.data?.length ?? 0) : 0,
-          unreadNotifications: unreadCountRes.status === 'fulfilled'
-            ? (typeof unreadCountRes.value.data === 'number' ? unreadCountRes.value.data : unreadCountRes.value.data?.count ?? 0)
-            : 0,
-        });
+        const extract = (res) =>
+          res?.status === 'fulfilled' ? (Array.isArray(res.value.data) ? res.value.data : []) : [];
 
-        if (notificationsRes.status === 'fulfilled') {
-          const allNotifs = Array.isArray(notificationsRes.value.data) ? notificationsRes.value.data : [];
-          setRecentNotifications(allNotifs.slice(0, 5));
+        setFacilities(extract(facilitiesRes));
+        setBookings(extract(bookingsRes));
+        setTickets(extract(ticketsRes));
+        if (usersRes) setUsers(extract(usersRes));
+
+        if (unreadRes?.status === 'fulfilled') {
+          const d = unreadRes.value.data;
+          setUnreadCount(typeof d === 'number' ? d : d?.count ?? 0);
+        }
+        if (notifsRes?.status === 'fulfilled') {
+          const all = Array.isArray(notifsRes.value.data) ? notifsRes.value.data : [];
+          setRecentNotifications(all.slice(0, 5));
         }
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
@@ -56,9 +71,19 @@ export default function HomePage() {
         setLoading(false);
       }
     };
-
     fetchDashboardData();
-  }, []);
+  }, [admin]);
+
+  /* ── Derived chart data ── */
+  const bookingChartData = useMemo(() => computeBookingStats(bookings), [bookings]);
+  const ticketChartData = useMemo(() => computeTicketStats(tickets), [tickets]);
+  const facilityChartData = useMemo(() => computeFacilityTypeStats(facilities), [facilities]);
+  const priorityChartData = useMemo(() => computePriorityStats(tickets), [tickets]);
+  const categoryChartData = useMemo(() => computeCategoryStats(tickets), [tickets]);
+  const roleChartData = useMemo(() => computeRoleStats(users), [users]);
+
+  const pendingBookings = useMemo(() => bookings.filter((b) => b.status === 'PENDING').length, [bookings]);
+  const openTickets = useMemo(() => tickets.filter((t) => t.status === 'OPEN').length, [tickets]);
 
   if (loading) {
     return (
@@ -71,28 +96,28 @@ export default function HomePage() {
   const statCards = [
     {
       label: 'Total Facilities',
-      value: stats.facilities,
+      value: facilities.length,
       icon: 'apartment',
       accent: 'text-primary',
       accentBg: 'bg-primary-container',
     },
     {
-      label: 'My Bookings',
-      value: stats.bookings,
+      label: admin ? 'All Bookings' : 'My Bookings',
+      value: bookings.length,
       icon: 'calendar_month',
       accent: 'text-primary',
       accentBg: 'bg-primary-container',
     },
     {
-      label: 'My Tickets',
-      value: stats.tickets,
+      label: admin ? 'All Tickets' : 'My Tickets',
+      value: tickets.length,
       icon: 'confirmation_number',
       accent: 'text-accent',
       accentBg: 'bg-accent/10',
     },
     {
       label: 'Unread Alerts',
-      value: stats.unreadNotifications,
+      value: unreadCount,
       icon: 'notifications',
       accent: 'text-accent',
       accentBg: 'bg-accent/10',
@@ -124,13 +149,44 @@ export default function HomePage() {
           </p>
         </div>
         <div className="ml-auto hidden sm:flex items-center gap-2">
-          <span className="label-caps text-on-surface-variant text-xs">Status</span>
+          <span
+            className={`label-caps text-xs px-3 py-1 font-semibold ${
+              admin
+                ? 'bg-error/10 text-error'
+                : 'bg-primary/10 text-primary'
+            }`}
+          >
+            {user?.role ?? 'USER'}
+          </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             Online
           </span>
         </div>
       </div>
+
+      {/* ── Admin Alert Banner ── */}
+      {admin && (pendingBookings > 0 || openTickets > 0) && (
+        <div className="cell-border bg-accent/5 p-4 flex items-center gap-4">
+          <div className="bg-accent/10 p-2.5">
+            <Icon name="pending_actions" className="text-accent" size={22} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-on-surface">Action Required</p>
+            <p className="text-xs text-on-surface-variant">
+              {pendingBookings > 0 && <>{pendingBookings} booking{pendingBookings !== 1 && 's'} pending approval</>}
+              {pendingBookings > 0 && openTickets > 0 && ' \u00B7 '}
+              {openTickets > 0 && <>{openTickets} open ticket{openTickets !== 1 && 's'}</>}
+            </p>
+          </div>
+          <Link
+            to="/bookings"
+            className="cell-border bg-accent px-4 py-2 text-xs font-semibold text-white transition hover:bg-accent/90"
+          >
+            Review
+          </Link>
+        </div>
+      )}
 
       {/* ── Stat Cards — Bento Grid ── */}
       <div>
@@ -147,13 +203,43 @@ export default function HomePage() {
                   <Icon name={card.icon} className={card.accent} size={20} />
                 </div>
               </div>
-              <p className={`font-display text-4xl font-bold ${card.accent}`}>
-                {card.value}
-              </p>
+              <p className={`font-display text-4xl font-bold ${card.accent}`}>{card.value}</p>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ── Charts ── */}
+      {admin ? (
+        <>
+          {/* Admin: Status bar charts */}
+          <div>
+            <h2 className="label-caps text-on-surface-variant text-xs mb-3">Status Overview</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+              <StatusBarChart data={bookingChartData} title="Booking Status" />
+              <StatusBarChart data={ticketChartData} title="Ticket Status" />
+            </div>
+          </div>
+          {/* Admin: Breakdown donuts */}
+          <div>
+            <h2 className="label-caps text-on-surface-variant text-xs mb-3">Analytics Breakdown</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+              <StatusDonut data={priorityChartData} title="Ticket Priority" />
+              <StatusBarChart data={categoryChartData} title="Top Categories" />
+              <StatusDonut data={roleChartData} title="Users by Role" />
+            </div>
+          </div>
+        </>
+      ) : (
+        <div>
+          <h2 className="label-caps text-on-surface-variant text-xs mb-3">Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+            <StatusDonut data={bookingChartData} title="Booking Status" />
+            <StatusDonut data={ticketChartData} title="Ticket Status" />
+            <StatusDonut data={facilityChartData} title="Facility Types" />
+          </div>
+        </div>
+      )}
 
       {/* ── Quick Actions ── */}
       <div>
@@ -172,17 +258,38 @@ export default function HomePage() {
             className="cell-border inline-flex items-center gap-2 bg-surface px-5 py-2.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low"
           >
             <Icon name="calendar_month" size={18} />
-            My Bookings
+            {admin ? 'Review Bookings' : 'My Bookings'}
             <Icon name="arrow_forward" size={16} />
           </Link>
-          <Link
-            to="/tickets"
-            className="cell-border inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent/90"
-          >
-            <Icon name="confirmation_number" size={18} />
-            Report an Issue
-            <Icon name="arrow_forward" size={16} />
-          </Link>
+          {admin ? (
+            <>
+              <Link
+                to="/admin"
+                className="cell-border inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent/90"
+              >
+                <Icon name="confirmation_number" size={18} />
+                Manage Tickets
+                <Icon name="arrow_forward" size={16} />
+              </Link>
+              <Link
+                to="/admin/users"
+                className="cell-border inline-flex items-center gap-2 bg-surface px-5 py-2.5 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low"
+              >
+                <Icon name="group" size={18} />
+                User Management
+                <Icon name="arrow_forward" size={16} />
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/tickets"
+              className="cell-border inline-flex items-center gap-2 bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-accent/90"
+            >
+              <Icon name="confirmation_number" size={18} />
+              Report an Issue
+              <Icon name="arrow_forward" size={16} />
+            </Link>
+          )}
         </div>
       </div>
 
